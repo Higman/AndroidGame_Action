@@ -17,28 +17,37 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class AccelerationItem extends EffectObject {
     private static final int ACCELERATION_AMOUNT = 1;  // 加算する移動する移動速度
 
-    private AtomicBoolean effecting;  // false:アイテム状態  true:効果付与中
-    private AtomicBoolean used;  // 使用されたかどうか
+    protected AtomicBoolean effecting;  // false:アイテム状態  true:効果付与中
+    protected AtomicBoolean used;  // 使用されたかどうか
 
     private static final String EFFECT_TEXT = "Speed UP!!";  // 効果付与中に表示する文字列
 
     private static final Paint TEXT_PAINT = new Paint();
     static { TEXT_PAINT.setColor(Color.RED); TEXT_PAINT.setTextSize(50); }
 
-    public AccelerationItem(Bitmap bitmap, int left, int top) {
-        super(bitmap, EffectItem.ACCELERATION_ITEM.getInt(), left, top);
+    //======================================================================================
+    //--  コンストラクタ
+    //======================================================================================
+    public AccelerationItem(Bitmap bitmap, int imageNumber, int left, int top) {
+        super(bitmap, imageNumber, left, top);
         effecting = new AtomicBoolean(false);
         used = new AtomicBoolean(false);
     }
 
+    public AccelerationItem(Bitmap bitmap, int left, int top) {
+        this(bitmap, EffectItem.ACCELERATION_ITEM.getInt(), left, top);
+    }
+
+    //======================================================================================
+    //--  描画メソッド
+    //======================================================================================
     @Override
     public void draw(Canvas canvas) {
         int height = canvas.getHeight();
         int width = canvas.getWidth();
 
         if ( !effecting.get() ) {
-            super.draw(canvas);
-            canvas.drawRect(positionRect, TEXT_PAINT);
+            canvas.drawBitmap(bitmap, srcRect, posRect, TEXT_PAINT);
         } else {
             canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 150, TEXT_PAINT);
         }
@@ -63,33 +72,37 @@ public class AccelerationItem extends EffectObject {
 
     @Override
     public void giveEffect(Droid droid) {
-        ItemEffect itemEffect = new ItemEffect(droid);
+        ItemEffect itemEffect = new ItemEffect(droid, ACCELERATION_AMOUNT, 5000);
         itemEffect.start();
     }
 
     public class ItemEffect extends Thread {
-        Droid droid;
+        private Droid droid;
+        private int amount;
+        private int waitTime;
 
-        public ItemEffect(Droid droid) {
+        public ItemEffect(Droid droid, int amount, int waitTime) {
             this.droid = droid;
+            this.amount = amount;
+            this.waitTime = waitTime;
         }
 
         @Override
         public void run() {
             //--- 効果の反映
-            droid.setDroidMoveToLeft(droid.getDroidMoveToLeft()+ACCELERATION_AMOUNT);
+            droid.setDroidMoveToLeft(droid.getDroidMoveToLeft()+amount);
             effecting.set(true);  // 状態を効果付与中に
 
             synchronized ( this ) {
                 try {
-                    wait(5000);
+                    wait(waitTime);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
 
             //--- 効果の終了
-            droid.setDroidMoveToLeft(droid.getDroidMoveToLeft()-ACCELERATION_AMOUNT);
+            droid.setDroidMoveToLeft(droid.getDroidMoveToLeft()-amount);
             effecting.set(false);
             used.set(true);
         }

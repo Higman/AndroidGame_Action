@@ -440,15 +440,18 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         Bitmap itemBitmap;
 
         //--- Objectの座標の決定
-        int itemLeft = left + rand.nextInt(right - left - EffectObject.IMAGE_BLOCK);
-        int itemTop = top + rand.nextInt(bottom - EffectObject._IMAGE_BLOCK_2);
+        int itemLeft = left + rand.nextInt(right - left - EffectObject.IMAGE_SIZE);
+        int itemTop = top + rand.nextInt(bottom - EffectObject.IMAGE_SIZE);
 
         //--- Objectの種類の決定
         int ObjectNum = rand.nextInt(NUMBER_OF_EFFECT_OBJECT);
 
         switch ( ObjectNum ) {
-             case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.droid);
+             case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.tmp_image01);
                       effectObject = new AccelerationItem(itemBitmap, itemLeft, itemTop);
+                      break;
+             case 1 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.tmp_image01);
+                      effectObject = new DecelerationItem(itemBitmap, itemLeft, itemTop);
                       break;
              default : effectObject = null;
         }
