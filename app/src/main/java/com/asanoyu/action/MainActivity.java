@@ -47,7 +47,8 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
         gameView.setFlame(relativeLayout);
 
         relativeLayout.addView(gameView);
-        relativeLayout.removeViews(0, relativeLayout.getChildCount()-1);
+
+        relativeLayout.removeViews(0, relativeLayout.getChildCount()-2);
     }
 
     LayoutInflater inflater;

@@ -7,6 +7,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.RectF;
+import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -22,6 +24,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import static android.util.TypedValue.COMPLEX_UNIT_DIP;
 
 /**
  * Created by YU-YA on 2016/09/07.
@@ -39,8 +43,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private static final int BLANK_WIDTH_AMPLITUDE = 250;  // Blankの幅の振幅
     private static final int GROUND_BLOCK_HEIGHT = 100;
 
-    private static final int EFFECT_OBJECT_PROBABILITY = 10;  // EffectObjectが配置される確率 ( 1 / n  )
+    private static final int EFFECT_OBJECT_PROBABILITY = 10;  // EffectObjectが配置される確率 ( 1 / n )
 
+    private int score;   // スコア
+    private static int SCORE_SIZE = 100;  // スコア単位
 
     private Player player;
     private Ground lastGround;
@@ -50,6 +56,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private static final float POWER_GAUGE_HEIGHT = 30;
     private static final Paint PAINT_POWER_GAUGE = new Paint();
     static { PAINT_POWER_GAUGE.setColor(Color.RED); }
+
+    private final Context context;
 
     private final List<Ground> groundList = new ArrayList<>();
     private final Random rand = new Random(System.currentTimeMillis());
@@ -159,11 +167,19 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         return true;
     }
 
+    private GageView gageView;
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         //- 自機の初期位置の計算
         PLAYER_START_POINT.x = (int)(getWidth()*0.6);
         PLAYER_START_POINT.y = getHeight()/2;
+
+        //- GageView
+        gageView = new GageView(context);
+        gageView.gageMax = (int) MAX_TOUCH_TIME;
+        gageView.gageMin = 0;
+        relativeLayout.addView(gageView);
 
         //- 初期化
         init();
@@ -217,6 +233,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         // inflaterの取得
         this.inflater = LayoutInflater.from(context);
 
+        this.context = context;
+
         getHolder().addCallback(this);
     }
 
@@ -254,6 +272,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         //-- 描画
         player.draw(canvas);
 
+        //-- スコア計算
+        if ( !this.isGameOver.get() ) { score += GROUND_MOVE_TO_LEFT + player.getPlayerMoveToLeft(); }
+
         //---- エフェクトオブジェクト
         //- 効果付与
         for ( int i = 0; i < effectObjects.size(); i++ ) {
@@ -280,11 +301,20 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
 
+
+
         //---- パワーゲージバー
+        float elapsedTime;
         if ( touchDownStartTime > 0 ) {
-            float elapsedTime = System.currentTimeMillis() - touchDownStartTime;
-            canvas.drawRect(0, 0, width * (elapsedTime / MAX_TOUCH_TIME), POWER_GAUGE_HEIGHT, PAINT_POWER_GAUGE);
+            elapsedTime = System.currentTimeMillis() - touchDownStartTime;
+
+            // canvas.drawRect(0, 0, width * (elapsedTime / MAX_TOUCH_TIME), POWER_GAUGE_HEIGHT, PAINT_POWER_GAUGE);
+        } else {
+            elapsedTime = 0;
         }
+
+        //- gageViewに値を渡す
+        gageView.setGageValue((int) elapsedTime);
     }
 
     private static final long MAX_TOUCH_TIME = 500;  // ミリ秒
@@ -388,6 +418,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         //-- 時間の初期化
         this.touchDownStartTime = 0;
 
+        //-- スコアの初期化
+        score = 0;
+
         //-- GameOver関連
         this.isGameOver.set(false);
     }
@@ -464,43 +497,121 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         return effectObject;
     }
 
-//    //---- X軸のleft ～ rightの範囲にEffectObjectを作成
-//    private EffectObject createEffectObject(int left, int right) {
-//        EffectObject effectObject;
-//        Bitmap itemBitmap;
-//
-//        //--- Objectの種類の決定
-//        int ObjectNum = rand.nextInt(NUMBER_OF_EFFECT_OBJECT);
-//
-//        switch ( ObjectNum ) {
-//            case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.player);
-//                     effectObject = new AccelerationItem(itemBitmap, 0, 0);
-//        }
-//
-//        //--- 位置の決定
-//        //-- X軸
-//        int itemLeft = left + rand.nextInt(right - left);
-//        int itemRight = itemLeft + effectObject.positionRect.right;
-//
-//        //-- Y軸
-//        //- 上限の決定
-//        int itemBottom = getHeight();
-//        for ( Ground ground : groundList ) {
-//            boolean horizontalLeft = itemLeft <= ground.rect.right && itemLeft >= ground.rect.left;
-//            boolean horizontalRight = itemRight <= ground.rect.right && itemRight >= ground.rect.left;
-//
-//            if ( ground.isSolid() ) {
-//                if ( horizontalRight ) {
-//                    if ( itemBottom > ground.rect.top ) {
-//                        itemBottom = ground.rect.top;
-//                    }
-//                    break;
-//                } else if ( horizontalLeft ) {
-//                    if ( itemBottom > ground.rect.top ) {
-//                        itemBottom = ground.rect.top;
-//                    }
-//                }
-//            }
-//        }
-//    }
+    //======================================================================================
+    //--  円ゲージクラス
+    //======================================================================================
+    public class GageView extends View {
+
+        private int circleBodyRadius;   // ゲージの半径
+        private Point circlePoint;  // ゲージの中心座標
+
+        private Paint gageBodyPaint;  // ゲージの本体色
+        private Paint gagePaint;      // ゲージの色
+
+        private Paint textPaint;     //
+
+        private int startGageAngle;   // ゲージのスタート位置（角度）
+        private int endGageAngle;     // ゲージのエンド位置（角度）
+
+
+        private int gageMax;   // ゲージの上限
+        private int gageMin;   // ゲージの下限
+
+        private int gageValue;  // ゲージの値
+
+        public GageView(Context context) {
+            super(context);
+
+            init();
+        }
+
+        public GageView(Context context, AttributeSet attrs) {
+            super(context, attrs);
+
+           init();
+        }
+
+        //======================================================================================
+        //--  初期化メソッド
+        //======================================================================================
+        public void init() {
+            this.gageBodyPaint = new Paint();
+            this.gageBodyPaint.setColor(Color.GRAY);
+            this.gagePaint = new Paint();
+            this.gagePaint.setColor(Color.RED);
+
+            this.textPaint = new Paint();
+            this.textPaint.setColor(Color.WHITE);
+            this.textPaint.setTextSize(80);
+
+            this.circlePoint = new Point(0, 0);
+            this.circleBodyRadius = 0;
+            this.gageMax = 100;
+            this.gageMin = 0;
+            this.gageValue = 0;
+            this.startGageAngle = 90;
+            this.endGageAngle = 0;
+        }
+
+        private void setGageMax(int max) {
+            this.gageMax = max;
+        }
+
+        private void setGageMin(int min) {
+            this.gageMin = min;
+        }
+
+        public void setGageValue(int gageValue) {
+            if ( gageValue < gageMin ) { gageValue = gageMin; }
+            if ( gageValue > gageMax ) { gageValue = gageMax; }
+
+            this.gageValue = gageValue;
+        }
+
+        public void setStartGageAngle(int startGageAngle) {
+            this.startGageAngle = startGageAngle;
+        }
+
+        public void setEndGageAngle(int endGageAngle) {
+            this.endGageAngle = endGageAngle;
+        }
+
+        @Override
+        protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+            circleBodyRadius = h / 5;  // 半径の設定
+            circlePoint.set(circleBodyRadius /4, circleBodyRadius /4);  // 中心座標の設定
+        }
+
+        @Override
+        protected void onDraw(Canvas canvas) {
+            super.onDraw(canvas);
+
+            //--- ゲージの本体の描画
+            canvas.drawCircle(circlePoint.x, circlePoint.y, circleBodyRadius, gageBodyPaint);
+
+            //--- ゲージのバー描画
+            //-- ゲージバー
+            float gageRadius = circleBodyRadius * 3 / 4.0f;
+            float left = circlePoint.x-gageRadius;
+            float top = circlePoint.y-gageRadius;
+            float right = circlePoint.x+gageRadius;
+            float bottom = circlePoint.y+gageRadius;
+            RectF rectF = new RectF(left, top, right, bottom);
+
+            int diffMinMax = gageMax-gageMin;   // 最大値と最小値の差
+            float gageRatio = gageValue / (float) diffMinMax;  // gageValueが占める割合
+
+            int gageAngle = (int) ((endGageAngle - startGageAngle) * gageRatio);
+
+            canvas.drawArc(rectF, startGageAngle, gageAngle, true, gagePaint);
+
+            //-- ゲージバーカバー
+            canvas.drawCircle(circlePoint.x, circlePoint.y, gageRadius*3/4, gageBodyPaint);
+
+            //-- スコア
+            canvas.drawText(Integer.toString(score/SCORE_SIZE), 10, textPaint.getTextSize(), textPaint);
+
+            invalidate();
+        }
+    }
 }
