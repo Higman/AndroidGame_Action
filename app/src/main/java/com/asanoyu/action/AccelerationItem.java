@@ -1,14 +1,11 @@
 package com.asanoyu.action;
 
-import android.content.ClipData;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Created by YU-YA on 2016/10/12.
@@ -57,8 +54,8 @@ public class AccelerationItem extends EffectObject {
     //--  当たり判定メソッド
     //======================================================================================
     @Override
-    public boolean isHit(Droid droid) {
-        if (super.isHit(droid) && !effecting.get()) {
+    public boolean isHit(Player player) {
+        if (super.isHit(player) && !effecting.get()) {
             return true;
         } else { return false; }
     }
@@ -83,8 +80,8 @@ public class AccelerationItem extends EffectObject {
     //--  効果付与メソッド
     //======================================================================================
     @Override
-    public void giveEffect(Droid droid) {
-        ItemEffect itemEffect = new ItemEffect(droid, ACCELERATION_AMOUNT, 5000);
+    public void giveEffect(Player player) {
+        ItemEffect itemEffect = new ItemEffect(player, ACCELERATION_AMOUNT, 5000);
         itemEffect.start();
     }
 
@@ -94,12 +91,12 @@ public class AccelerationItem extends EffectObject {
     //======================================================================================
     //======================================================================================
     public class ItemEffect extends Thread {
-        private Droid droid;
+        private Player player;
         private int amount;
         private int waitTime;
 
-        public ItemEffect(Droid droid, int amount, int waitTime) {
-            this.droid = droid;
+        public ItemEffect(Player player, int amount, int waitTime) {
+            this.player = player;
             this.amount = amount;
             this.waitTime = waitTime;
         }
@@ -107,7 +104,7 @@ public class AccelerationItem extends EffectObject {
         @Override
         public void run() {
             //--- 効果の反映
-            droid.setDroidMoveToLeft(droid.getDroidMoveToLeft()+amount);
+            player.setPlayerMoveToLeft(player.getPlayerMoveToLeft()+amount);
             effecting.set(true);  // 状態を効果付与中に
 
             synchronized ( this ) {
@@ -119,7 +116,7 @@ public class AccelerationItem extends EffectObject {
             }
 
             //--- 効果の終了
-            droid.setDroidMoveToLeft(droid.getDroidMoveToLeft()-amount);
+            player.setPlayerMoveToLeft(player.getPlayerMoveToLeft()-amount);
             effecting.set(false);
             used.set(true);
         }

@@ -44,8 +44,8 @@ public class DecelerationItem extends AccelerationItem {
     //--  効果付与メソッド
     //======================================================================================
     @Override
-    public void giveEffect(Droid droid) {
-        ItemEffect itemEffect = new ItemEffect(droid, this.DECELERATION_AMOUNT, 2000);
+    public void giveEffect(Player player) {
+        ItemEffect itemEffect = new ItemEffect(player, this.DECELERATION_AMOUNT, 2000);
         itemEffect.start();
     }
 }

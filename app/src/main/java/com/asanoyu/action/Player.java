@@ -13,20 +13,33 @@ import java.util.ArrayList;
 /**
  * Created by YU-YA on 2016/09/07.
  */
-public class Droid {
+public class Player {
     private final Paint paint = new Paint();
+
+    private static final int IMAGE_SIZE = 200;
+    private static final int SMOKE_IMAGE_SIZE = 150;
+    private static final int BLOCK_SIZE = 64;
+
     private BitmapAnimation bitmapA;
+    private Bitmap bitmapJ;           // ジャンプ時の画像
+    private static final Rect PLAYER_JUMPING_RECT = new Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE);
+
+    private BitmapAnimation bitmapA_smoke;  // 煙アニメーション
+    private final RectF smokeRect = new RectF();
 
     private static final int HIT_MARGIN_LEFT = 4;
     private static final int HIT_MARGIN_RIGHT = 2;
     private static final int HIT_MARGIN_TOP = 17;
     private static final int HIT_MARGIN_BOTTOM = 16;
 
+    private static final int HIT_JUMPING_MARGIN_LEFT = 3;
+    private static final int HIT_JUMPING_MARGIN_RIGHT = 6;
+    private static final int HIT_JUMPING_MARGIN_TOP = 12;
+    private static final int HIT_JUMPING_MARGIN_BOTTOM = 16;
+
     private static final float GRAVITY = 0.8f;
     private static final float WEIGHT = GRAVITY * 40;
 
-    private static final int IMAGE_SIZE = 200;
-    private static final int BLOCK_SIZE = 64;
     private int animationInterval = 750;   // アニメーション間隔
 
     private float velocity = 0;
@@ -34,27 +47,38 @@ public class Droid {
     final RectF rect;
     final Rect hitRect;
 
-    public static final int DEFAULT_DROID_MOVE_LEFT = 0;
-    private int droidMoveToLeft;  // 自機が画面上を移動するX軸上の速度
+    final Rect hitRectN;
+    final Rect hitRectJ;
+
+    public static final int DEFAULT_PLAYER_MOVE_LEFT = 0;
+    private int playerMoveToLeft;  // 自機が画面上を移動するX軸上の速度
 
     private int rightEnd;
 
     //======================================================================================
     //--  コンストラクタ
     //======================================================================================
-    public Droid(Bitmap bitmap, int left, int top, int rightEnd, Callback callback) {
+    public Player(Bitmap bitmap, int left, int top, int rightEnd, Callback callback) {
         int right = left + this.IMAGE_SIZE;
         int bottom = top + this.IMAGE_SIZE;
-        double imageRate = this.IMAGE_SIZE / (double)this.BLOCK_SIZE;  // 拡大比率
+        double imageRatio = this.IMAGE_SIZE / (double)this.BLOCK_SIZE;  // 拡大比率
 
         //--- 描画位置・当たり判定矩形
-        this.rect = new RectF(left, top, right, bottom);
-        this.hitRect = new Rect(left, top, right, bottom);
-        this.hitRect.left += Math.round(HIT_MARGIN_LEFT * imageRate);
-        this.hitRect.right -= Math.round(HIT_MARGIN_RIGHT * imageRate);
-        this.hitRect.top += Math.round(HIT_MARGIN_TOP * imageRate);
-        this.hitRect.bottom -= Math.round(HIT_MARGIN_BOTTOM * imageRate);
+        this.hitRectN = new Rect(left, top, right, bottom);
+        this.hitRectN.left += Math.round(HIT_MARGIN_LEFT * imageRatio);
+        this.hitRectN.right -= Math.round(HIT_MARGIN_RIGHT * imageRatio);
+        this.hitRectN.top += Math.round(HIT_MARGIN_TOP * imageRatio);
+        this.hitRectN.bottom -= Math.round(HIT_MARGIN_BOTTOM * imageRatio);
 
+        this.hitRectJ = new Rect(left, top, right, bottom);
+        this.hitRectJ.left += Math.round(HIT_JUMPING_MARGIN_LEFT * imageRatio);
+        this.hitRectJ.right -= Math.round(HIT_JUMPING_MARGIN_RIGHT * imageRatio);
+        this.hitRectJ.top += Math.round(HIT_JUMPING_MARGIN_TOP * imageRatio);
+        this.hitRectJ.bottom -= Math.round(HIT_JUMPING_MARGIN_BOTTOM * imageRatio);
+
+        this.rect = new RectF(left, top, right, bottom);
+        this.hitRect = new Rect();
+        this.hitRect.set(hitRectN);
 
         //--- アニメーション関連
         this.bitmapA = new BitmapAnimation(bitmap, this.BLOCK_SIZE);
@@ -62,11 +86,11 @@ public class Droid {
 
         this.rightEnd = rightEnd;
         this.callback = callback;
-        this.droidMoveToLeft = DEFAULT_DROID_MOVE_LEFT;
+        this.playerMoveToLeft = DEFAULT_PLAYER_MOVE_LEFT;
     }
 
     public interface Callback {
-        Droid.MoveDirection getDistanceFromObstacle(Droid droid);
+        Player.MoveDirection getDistanceFromObstacle(Player player);
     }
 
     public static class MoveDirection {
@@ -84,12 +108,28 @@ public class Droid {
 
     private final Callback callback;
 
+    //======================================================================================
+    //--  描画メソッド
+    //======================================================================================
     public void draw(Canvas canvas) {
+        //--- 煙の描画
+        if ( bitmapA_smoke != null ) {
+            bitmapA_smoke.drawAnimation(canvas, smokeRect, paint);
+        }
 
-        bitmapA.drawAnimation(canvas, this.rect, paint);
+        //--- 自機の描画
+        if ( bitmapJ != null && velocity != 0 ) {
+            canvas.drawBitmap(bitmapJ, this.PLAYER_JUMPING_RECT, this.rect, paint);
+        } else {
+            bitmapA.drawAnimation(canvas, this.rect, paint);
+        }
 
 //        paint.setColor(Color.argb(100, 100, 100, 40));
-//        canvas.drawRect(hitRect.left, hitRect.top, hitRect.right, hitRect.bottom, paint);
+//        canvas.drawRect(hitRect, paint);
+//        paint.setColor(Color.argb(100, 100, 00, 00));
+//        canvas.drawRect(hitRectN, paint);
+//        paint.setColor(Color.argb(100, 0, 100, 00));
+//        canvas.drawRect(hitRectJ, paint);
         paint.setColor(Color.argb(255, 0, 0, 0));
 //
 //        paint.setColor(Color.CYAN);
@@ -101,9 +141,26 @@ public class Droid {
 //        canvas.drawLine(hitRect.right, rect.centerY(), hitRect.right, rect.centerY()-100, paint);
     }
 
+    public void setBitmapJ(Bitmap bitmap) {
+        this.bitmapJ = bitmap;
+    }
+
+    public void setSmoke(Bitmap bitmap) {
+        this.bitmapA_smoke = new BitmapAnimation(bitmap, BLOCK_SIZE);
+        this.bitmapA_smoke.setInterval(animationInterval);
+        this.smokeRect.set(hitRectN.left-this.SMOKE_IMAGE_SIZE, hitRectN.bottom-this.SMOKE_IMAGE_SIZE, hitRectN.left, hitRectN.bottom);
+    }
+
     public void jump(float power) { velocity = (power * WEIGHT); }
 
     public void stop() { velocity = 0; }
+
+    private void moveRectAll(int dx, int dy) {
+        rect.offset(dx, dy);
+        hitRectN.offset(dx, dy);
+        hitRectJ.offset(dx, dy);
+        smokeRect.offset(dx, dy);
+    }
 
     public void move() {
         MoveDirection moveDirection = callback.getDistanceFromObstacle(this);
@@ -115,49 +172,50 @@ public class Droid {
         }
 
         //-- 移動
-        rect.offset(this.droidMoveToLeft, Math.round(-1*velocity));
-        hitRect.offset(this.droidMoveToLeft, Math.round(-1*velocity));
+        moveRectAll(this.playerMoveToLeft, Math.round(-1*velocity));
 
         //-- 補正
         if ( distanceFromWall < 0 ) {
-            rect.offset(distanceFromWall, 0);
-            hitRect.offset(distanceFromWall, 0);
+            moveRectAll(distanceFromWall, 0);
         }
 
         if ( hitRect.right > rightEnd ) {
             int endMoveLeft = rightEnd - hitRect.right;
-            rect.offset(endMoveLeft, 0);
-            hitRect.offset(endMoveLeft, 0);
+            moveRectAll(endMoveLeft, 0);
         }
 
         if ( distanceFromGround == 0 ) {
+            hitRect.set(hitRectN);
             return;
         } else if ( distanceFromGround < 0 ) {
-            rect.offset(0, distanceFromGround);
-            hitRect.offset(0, distanceFromGround);
+            moveRectAll(0, distanceFromGround);
             return;
         }
+
+        hitRect.set(hitRectJ);
 
         velocity -= GRAVITY;
     }
 
     public void gameOverMove() {
-        rect.offset(-Integer.MAX_VALUE/2, 0);
-        hitRect.offset(-Integer.MAX_VALUE/2, 0);
+        rect.offset(0, Integer.MAX_VALUE);
+        hitRectN.offset(0, Integer.MAX_VALUE);
+        hitRectJ.offset(0, Integer.MAX_VALUE);
+        hitRect.offset(0, Integer.MAX_VALUE);
     }
 
     //----- setter/getter
-    public void setDroidMoveToLeft(int droidMoveToLeft) {
+    public void setPlayerMoveToLeft(int playerMoveToLeft) {
         //--- 補正
-        if ( droidMoveToLeft < -10 ) { droidMoveToLeft = -10; }
-        if ( droidMoveToLeft > 10 ) { droidMoveToLeft = 10; }
+        if ( playerMoveToLeft < -10 ) { playerMoveToLeft = -10; }
+        if ( playerMoveToLeft > 10 ) { playerMoveToLeft = 10; }
 
         //--- 処理
-        this.droidMoveToLeft = droidMoveToLeft;
+        this.playerMoveToLeft = playerMoveToLeft;
     }
 
-    public int getDroidMoveToLeft() {
-        return droidMoveToLeft;
+    public int getPlayerMoveToLeft() {
+        return playerMoveToLeft;
     }
 
     public class BitmapAnimation {

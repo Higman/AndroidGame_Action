@@ -16,7 +16,7 @@ public abstract class EffectObject {
     protected final Rect posRect;  // 画面描写先の位置・サイズ
     protected Bitmap bitmap;
 
-    public static final int IMAGE_BLOCK = 400;   // 描画元の画像のサイズ(1オブジェクトあたり)
+    public static final int IMAGE_BLOCK = 64;   // 描画元の画像のサイズ(1オブジェクトあたり)
     public static final int IMAGE_SIZE = 100;    // 描画するサイズ
 
 
@@ -25,8 +25,8 @@ public abstract class EffectObject {
     //======================================================================================
     public EffectObject(Bitmap bitmap, int imageNumber, int left, int top) {
         int imageNumberOfItemX = bitmap.getWidth() / this.IMAGE_BLOCK;  // 画像の1行に存在するアイテムの数
-        int imagePositionX = this.IMAGE_BLOCK * (imageNumber / imageNumberOfItemX);
-        int imagePositionY = this.IMAGE_BLOCK * (imageNumber % imageNumberOfItemX);
+        int imagePositionX = this.IMAGE_BLOCK * (imageNumber % imageNumberOfItemX);
+        int imagePositionY = this.IMAGE_BLOCK * (imageNumber / imageNumberOfItemX);
         this.srcRect = new Rect(imagePositionX, imagePositionY,
                 imagePositionX+IMAGE_BLOCK, imagePositionY+IMAGE_BLOCK);
         int bottom = top + this.IMAGE_SIZE;
@@ -40,7 +40,7 @@ public abstract class EffectObject {
     //======================================================================================
     public static enum EffectItem {
         ACCELERATION_ITEM(0),
-        DECELERATION_ITEM(0);
+        DECELERATION_ITEM(1);
 
         private final int id;
 
@@ -51,7 +51,6 @@ public abstract class EffectObject {
         public int getInt() {
             return this.id;
         }
-
     }
 
     //======================================================================================
@@ -89,10 +88,10 @@ public abstract class EffectObject {
     //======================================================================================
     //--  当たり判定メソッド
     //======================================================================================
-    public boolean isHit(Droid droid) { return Rect.intersects(posRect, droid.hitRect); }
+    public boolean isHit(Player player) { return Rect.intersects(posRect, player.hitRect); }
 
     //======================================================================================
     //--  効果付与メソッド
     //======================================================================================
-    public abstract void giveEffect(Droid droid);
+    public abstract void giveEffect(Player player);
 }

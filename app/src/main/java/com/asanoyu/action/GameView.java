@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
@@ -28,22 +27,25 @@ import java.util.Random;
  * Created by YU-YA on 2016/09/07.
  */
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
-    private Bitmap droidBitmap;
+    private Bitmap playerBitmap;
     public static final int GROUND_MOVE_TO_LEFT = 10;
     private static final int GROUND_HEIGHT = 50;
     private static final long DRAW_INTERVAL = 1000 / 80;
     private static final int ADD_GROUND_COUNT = 5;
     private static final int ITEM_SIZE_MAX = 3;
-    private static final int STANDARD_GROUND_WIDTH = 600;   // Groundの幅の基準 (最大幅)
+    private static final int STANDARD_GROUND_WIDTH = 1500;   // Groundの幅の基準 (最大幅)
     private static final int STANDARD_BLANK_WIDTH = 450;   // Blankの幅の基準 (最大幅)
     private static final int GROUND_WIDTH_AMPLITUDE = 200;  // Groundの幅の振幅
     private static final int BLANK_WIDTH_AMPLITUDE = 250;  // Blankの幅の振幅
     private static final int GROUND_BLOCK_HEIGHT = 100;
 
-    private Droid droid;
+    private static final int EFFECT_OBJECT_PROBABILITY = 10;  // EffectObjectが配置される確率 ( 1 / n  )
+
+
+    private Player player;
     private Ground lastGround;
 
-    private static final Point DROID_START_POINT = new Point();   // 自機の初期スタート位置
+    private static final Point PLAYER_START_POINT = new Point();   // 自機の初期スタート位置
 
     private static final float POWER_GAUGE_HEIGHT = 30;
     private static final Paint PAINT_POWER_GAUGE = new Paint();
@@ -54,33 +56,33 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private final List<EffectObject> effectObjects = new ArrayList<>();   // 効果付与物体のリスト
 
-    private final Droid.Callback droidCallback = new Droid.Callback() {
+    private final Player.Callback playerCallback = new Player.Callback() {
         @Override
-        public Droid.MoveDirection getDistanceFromObstacle(Droid droid) {
+        public Player.MoveDirection getDistanceFromObstacle(Player player) {
             int distanceFromWall = Integer.MAX_VALUE;
             int distanceFromGround = Integer.MAX_VALUE;
 
             for ( Ground ground : groundList ) {
-                if ( ground.rect.left > droid.hitRect.right ) {
+                if ( ground.rect.left > player.hitRect.right ) {
                     break;
                 }
-                if ( ground.rect.right < droid.hitRect.left ) {
+                if ( ground.rect.right < player.hitRect.left ) {
                     continue;
                 }
 
-                boolean horizontalLeft = droid.hitRect.left <= ground.rect.right && droid.hitRect.left >= ground.rect.left;
-                boolean horizontalRight = droid.hitRect.right <= ground.rect.right && droid.hitRect.right >= ground.rect.left;
+                boolean horizontalLeft = player.hitRect.left <= ground.rect.right && player.hitRect.left >= ground.rect.left;
+                boolean horizontalRight = player.hitRect.right <= ground.rect.right && player.hitRect.right >= ground.rect.left;
 
                 if ( horizontalRight ) {
-                    // droidオブジェクトの一番近くにあるGroundオブジェクトまでの距離
-                    if ( ground.isSolid() && ground.rect.top < droid.hitRect.bottom ) {
-                        distanceFromWall = ground.rect.left - droid.hitRect.right;
+                    // playerオブジェクトの一番近くにあるGroundオブジェクトまでの距離
+                    if ( ground.isSolid() && ground.rect.top < player.hitRect.bottom ) {
+                        distanceFromWall = ground.rect.left - player.hitRect.right;
                         int local = groundList.indexOf(ground)-1;
                         ground = groundList.get(local);
                     }
 
                     if ( ground.isSolid() ) {
-                        int distanceFromGroundRight = ground.rect.top - droid.hitRect.bottom;
+                        int distanceFromGroundRight = ground.rect.top - player.hitRect.bottom;
 
                         if (distanceFromGround > distanceFromGroundRight) {
                             distanceFromGround = distanceFromGroundRight;
@@ -91,12 +93,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     if ( !ground.isSolid() ) {
                         distanceFromGround = Integer.MAX_VALUE;
                     } else {
-                        distanceFromGround = ground.rect.top - droid.hitRect.bottom;
+                        distanceFromGround = ground.rect.top - player.hitRect.bottom;
                     }
                 }
             }
 
-            return new Droid.MoveDirection(distanceFromWall, distanceFromGround);
+            return new Player.MoveDirection(distanceFromWall, distanceFromGround);
         }
     };
 
@@ -160,8 +162,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         //- 自機の初期位置の計算
-        DROID_START_POINT.x = (int)(getWidth()*0.6);
-        DROID_START_POINT.y = getHeight()/2;
+        PLAYER_START_POINT.x = (int)(getWidth()*0.6);
+        PLAYER_START_POINT.y = getHeight()/2;
 
         //- 初期化
         init();
@@ -198,8 +200,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         }
 
         isGameOver.set(true);
-        droid.gameOverMove();
-        droid.stop();
+        player.gameOverMove();
+        player.stop();
         handler.post(new Runnable() {
             @Override
             public void run() {
@@ -220,7 +222,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     protected void drawGame(Canvas canvas) {
 
-        canvas.drawColor(Color.WHITE);
+        canvas.drawColor(Color.rgb(0xc2, 0xed, 0xff));
 
         int width = canvas.getWidth();
         int height = canvas.getHeight();
@@ -245,12 +247,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         }
 
         //---- アンドロイドロイド君
-        droid.move();
+        player.move();
         //-- ゲームオーバー判定
-        if ( droid.hitRect.top > canvas.getHeight() || droid.hitRect.right < 0 ) { gameOver(); }
+        if ( player.hitRect.top > canvas.getHeight() || player.hitRect.right < 0 ) { gameOver(); }
 
         //-- 描画
-        droid.draw(canvas);
+        player.draw(canvas);
 
         //---- エフェクトオブジェクト
         //- 効果付与
@@ -258,8 +260,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             EffectObject effObj = effectObjects.get(i);
             if ( !effObj.isShown(width, height) ) { continue; }
 
-            if ( effObj.isHit(droid) ) {
-                effObj.giveEffect(droid);
+            if ( effObj.isHit(player) ) {
+                effObj.giveEffect(player);
             }
         }
 
@@ -297,7 +299,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 return true;
             case MotionEvent.ACTION_UP :
                 float time = System.currentTimeMillis() - touchDownStartTime;
-                jumpDroid(time);
+                jumpPlayer(time);
                 touchDownStartTime = 0;
                 break;
         }
@@ -305,23 +307,24 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         return super.onTouchEvent(event);
     }
 
-    private void jumpDroid(float time) {
-        if ( droidCallback.getDistanceFromObstacle(droid).y > 0 ) {
+    private void jumpPlayer(float time) {
+        if ( playerCallback.getDistanceFromObstacle(player).y > 0 ) {
             return;
         }
 
-        droid.jump(Math.min(time, MAX_TOUCH_TIME) / MAX_TOUCH_TIME);
+        player.jump(Math.min(time, MAX_TOUCH_TIME) / MAX_TOUCH_TIME);
     }
 
     //---- 地面 Ground の作成
     private void createGround(int height, int width) {
         if ( lastGround == null ) {
+            groundList.clear();
             this.groundList.clear();
             int top = height - GROUND_HEIGHT;
             lastGround = new Ground(0, top, width, height);
             groundList.add(lastGround);
             int LGRight = lastGround.rect.right;
-            lastGround = new Blank(LGRight, height-1, LGRight+droid.hitRect.width()+1, height);
+            lastGround = new Blank(LGRight, height-1, LGRight+ player.hitRect.width()+1, height);
             groundList.add(lastGround);
         }
 
@@ -349,7 +352,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
                 //--- エフェクトオブジェクトの配置
                 if ( effectObjects.size() < ITEM_SIZE_MAX ) {
-                    int randItem = rand.nextInt(10);
+                    int randItem = rand.nextInt(EFFECT_OBJECT_PROBABILITY);
                     if ( randItem == 0 ) {
                         // オブジェクトの作成・追加
                         effectObjects.add(createEffectObject(left, 0, right, itemRangeRectBottom));
@@ -365,9 +368,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int height = getHeight();
         int width = getWidth();
 
-        //-- Droidの初期化
-        this.droidBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_group);
-        this.droid = new Droid(droidBitmap, DROID_START_POINT.x, DROID_START_POINT.y, width, droidCallback);
+        //-- Playerの初期化
+        this.playerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_group);
+        this.player = new Player(playerBitmap, PLAYER_START_POINT.x, PLAYER_START_POINT.y, width, playerCallback);
+        this.player.setBitmapJ(BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_jump));  // ジャンプ時アニメーションの設定
+        this.player.setSmoke(BitmapFactory.decodeResource(getResources(), R.drawable.tank_smoke));       // 煙の設定
 
         //-- 地面オブジェクト
         this.groundList.removeAll(this.groundList);
@@ -434,8 +439,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     //-- EffectObjectの作成
-    private static final int NUMBER_OF_EFFECT_OBJECT = EffectObject.EffectItem.values().length;
-
     public EffectObject createEffectObject(int left, int top, int right, int bottom) {
         EffectObject effectObject;
 
@@ -446,13 +449,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int itemTop = top + rand.nextInt(bottom - EffectObject.IMAGE_SIZE);
 
         //--- Objectの種類の決定
-        int ObjectNum = rand.nextInt(NUMBER_OF_EFFECT_OBJECT);
+        int ObjectNum = rand.nextInt(EffectObject.EffectItem.values().length);
 
         switch ( ObjectNum ) {
-             case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.tmp_image01);
+             case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
                       effectObject = new AccelerationItem(itemBitmap, itemLeft, itemTop);
                       break;
-             case 1 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.tmp_image01);
+             case 1 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
                       effectObject = new DecelerationItem(itemBitmap, itemLeft, itemTop);
                       break;
              default : effectObject = null;
@@ -470,7 +473,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 //        int ObjectNum = rand.nextInt(NUMBER_OF_EFFECT_OBJECT);
 //
 //        switch ( ObjectNum ) {
-//            case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.droid);
+//            case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.player);
 //                     effectObject = new AccelerationItem(itemBitmap, 0, 0);
 //        }
 //
