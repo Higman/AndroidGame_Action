@@ -15,11 +15,14 @@ public abstract class EffectObject {
     protected final Rect srcRect;     // 描写元の位置・サイズ
     protected final Rect posRect;  // 画面描写先の位置・サイズ
     protected Bitmap bitmap;
-    protected int OBJECT_MOVE_TO_LEFT = 10;
-    public static final int IMAGE_BLOCK = 400;
-    public static final int _IMAGE_BLOCK_2 = 143;  // あとで消す
-    public static final int IMAGE_SIZE = 100;
 
+    public static final int IMAGE_BLOCK = 400;   // 描画元の画像のサイズ(1オブジェクトあたり)
+    public static final int IMAGE_SIZE = 100;    // 描画するサイズ
+
+
+    //======================================================================================
+    //--  コンストラクタ
+    //======================================================================================
     public EffectObject(Bitmap bitmap, int imageNumber, int left, int top) {
         int imageNumberOfItemX = bitmap.getWidth() / this.IMAGE_BLOCK;  // 画像の1行に存在するアイテムの数
         int imagePositionX = this.IMAGE_BLOCK * (imageNumber / imageNumberOfItemX);
@@ -32,6 +35,9 @@ public abstract class EffectObject {
         this.bitmap = bitmap;
     }
 
+    //======================================================================================
+    //--  アイテム判定用列挙体
+    //======================================================================================
     public static enum EffectItem {
         ACCELERATION_ITEM(0),
         DECELERATION_ITEM(0);
@@ -48,6 +54,9 @@ public abstract class EffectObject {
 
     }
 
+    //======================================================================================
+    //--  移動メソッド
+    //======================================================================================
     public void move(int moveToLeft) {
         posRect.offset(-moveToLeft, 0);
     }
@@ -56,19 +65,34 @@ public abstract class EffectObject {
         canvas.drawBitmap(bitmap, srcRect, posRect, paint);
     }
 
+    //======================================================================================
+    //--  位置修正メソッド
+    //======================================================================================
     public void setPosition(int top, int left) {
         this.posRect.offsetTo(top, left);
     }
 
+    //======================================================================================
+    //--  描画判定メソッド
+    //======================================================================================
     public boolean isShown(int width, int height) {
         return this.posRect.intersects(0, 0, width, height);
     }
 
+    //======================================================================================
+    //--  利用判定メソッド
+    //======================================================================================
     public boolean isAvailable() {
         return (this.posRect.right > 0);
     }
 
+    //======================================================================================
+    //--  当たり判定メソッド
+    //======================================================================================
     public boolean isHit(Droid droid) { return Rect.intersects(posRect, droid.hitRect); }
 
+    //======================================================================================
+    //--  効果付与メソッド
+    //======================================================================================
     public abstract void giveEffect(Droid droid);
 }

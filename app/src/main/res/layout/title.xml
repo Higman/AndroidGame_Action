@@ -6,6 +6,10 @@
     android:layout_gravity="center"
     android:background="#FFFFFF">
 
+    <SurfaceView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"/>
+
     <TextView
         android:id="@+id/t_text"
         android:layout_height="wrap_content"

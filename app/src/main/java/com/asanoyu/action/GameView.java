@@ -6,6 +6,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.PixelFormat;
 import android.graphics.Point;
 import android.view.LayoutInflater;
 import android.view.SurfaceHolder;
@@ -34,9 +35,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private static final int ADD_GROUND_COUNT = 5;
     private static final int ITEM_SIZE_MAX = 3;
     private static final int STANDARD_GROUND_WIDTH = 600;   // Groundの幅の基準 (最大幅)
-    private static final int STANDARD_BLANK_WIDTH = 400;   // Blankの幅の基準 (最大幅)
+    private static final int STANDARD_BLANK_WIDTH = 450;   // Blankの幅の基準 (最大幅)
     private static final int GROUND_WIDTH_AMPLITUDE = 200;  // Groundの幅の振幅
-    private static final int BLANK_WIDTH_AMPLITUDE = 300;  // Blankの幅の振幅
+    private static final int BLANK_WIDTH_AMPLITUDE = 250;  // Blankの幅の振幅
     private static final int GROUND_BLOCK_HEIGHT = 100;
 
     private Droid droid;
@@ -218,6 +219,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     protected void drawGame(Canvas canvas) {
+
         canvas.drawColor(Color.WHITE);
 
         int width = canvas.getWidth();
@@ -319,7 +321,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             lastGround = new Ground(0, top, width, height);
             groundList.add(lastGround);
             int LGRight = lastGround.rect.right;
-            lastGround = new Blank(LGRight, height-1, LGRight+droid.hitRect.width(), height);
+            lastGround = new Blank(LGRight, height-1, LGRight+droid.hitRect.width()+1, height);
             groundList.add(lastGround);
         }
 
@@ -364,7 +366,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int width = getWidth();
 
         //-- Droidの初期化
-        this.droidBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.droidtwins);
+        this.droidBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_group);
         this.droid = new Droid(droidBitmap, DROID_START_POINT.x, DROID_START_POINT.y, width, droidCallback);
 
         //-- 地面オブジェクト
