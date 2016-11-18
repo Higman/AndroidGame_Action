@@ -545,7 +545,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
             this.textPaint = new Paint();
             this.textPaint.setColor(Color.WHITE);
-            this.textPaint.setTextSize(80);
+            this.textPaint.setTextSize(60.0f);
 
             this.circlePoint = new Point(0, 0);
             this.circleBodyRadius = 0;
@@ -604,15 +604,26 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             int diffMinMax = gageMax-gageMin;   // 最大値と最小値の差
             float gageRatio = gageValue / (float) diffMinMax;  // gageValueが占める割合
 
-            int gageAngle = (int) ((endGageAngle - startGageAngle) * gageRatio);
+            int diffGageAngle = endGageAngle - startGageAngle;  // 差
+            int gageAngle = (int) (diffGageAngle * gageRatio);
 
+            gagePaint.setColor(Color.WHITE);
+            canvas.drawArc(rectF, startGageAngle, diffGageAngle, true, gagePaint);
+            gagePaint.setColor(Color.RED);
             canvas.drawArc(rectF, startGageAngle, gageAngle, true, gagePaint);
 
             //-- ゲージバーカバー
-            canvas.drawCircle(circlePoint.x, circlePoint.y, gageRadius*3/4, gageBodyPaint);
+            float gageCoverRadius = gageRadius*3/4;  // ゲージカバーの半径
+            canvas.drawCircle(circlePoint.x, circlePoint.y, gageCoverRadius, gageBodyPaint);
 
             //-- スコア
-            canvas.drawText(Integer.toString(score/SCORE_SIZE), 10, textPaint.getTextSize(), textPaint);
+            String scoreStr = Integer.toString(score/SCORE_SIZE);
+//            int lengthScore = scoreStr.length();  // 桁数
+
+            textPaint.setTextSize(30.0f);
+            canvas.drawText("Score", 5, 40, textPaint);
+            textPaint.setTextSize(55.0f);
+            canvas.drawText(scoreStr, 10, 100, textPaint);
 
             invalidate();
         }
