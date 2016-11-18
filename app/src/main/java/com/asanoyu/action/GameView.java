@@ -169,11 +169,14 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private GageView gageView;
 
+    private int screenWidth;   // 画面サイズ
+    private int screenHeight;  // 画面サイズ
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         //- 自機の初期位置の計算
-        PLAYER_START_POINT.x = (int)(getWidth()*0.6);
-        PLAYER_START_POINT.y = getHeight()/2;
+        PLAYER_START_POINT.x = (int)(this.screenWidth*0.6);
+        PLAYER_START_POINT.y = this.screenHeight/2;
 
         //- GageView
         gageView = new GageView(context);
@@ -227,13 +230,17 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         });
     }
 
-    public GameView(Context context) {
+    public GameView(Context context, int screenWidth, int screenHeight) {
         super(context);
 
         // inflaterの取得
         this.inflater = LayoutInflater.from(context);
 
         this.context = context;
+
+        // 画面サイズ
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
 
         getHolder().addCallback(this);
     }
@@ -242,12 +249,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
         canvas.drawColor(Color.rgb(0xc2, 0xed, 0xff));
 
-        int width = canvas.getWidth();
-        int height = canvas.getHeight();
-
         //---- 地面
         //-- 追加
-        this.createGround(height, width);
+        this.createGround(screenHeight, screenWidth);
 
         //-- 描画
         for ( int i = 0; i < groundList.size(); i++ ) {
@@ -255,7 +259,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
             if ( ground.isAvailable() || groundList.get(groundList.indexOf(ground)+1).isAvailable() ) {
                 ground.move(GROUND_MOVE_TO_LEFT);
-                if ( ground.isShown(width, height) ) {
+                if ( ground.isShown(screenWidth, screenHeight) ) {
                     ground.draw(canvas);
                 }
             } else {
@@ -264,22 +268,24 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
 
-        //---- アンドロイドロイド君
+        int pre_playerX = player.hitRect.centerX(); //移動前のPlaterの位置
+
+        //---- Player
         player.move();
         //-- ゲームオーバー判定
-        if ( player.hitRect.top > canvas.getHeight() || player.hitRect.right < 0 ) { gameOver(); }
+        if ( player.hitRect.top > this.screenHeight || player.hitRect.right < 0 ) { gameOver(); }
 
         //-- 描画
         player.draw(canvas);
 
         //-- スコア計算
-        if ( !this.isGameOver.get() ) { score += GROUND_MOVE_TO_LEFT + player.getPlayerMoveToLeft(); }
+        if ( !this.isGameOver.get() ) { score += this.GROUND_MOVE_TO_LEFT + player.hitRect.centerX() - pre_playerX; }
 
         //---- エフェクトオブジェクト
         //- 効果付与
         for ( int i = 0; i < effectObjects.size(); i++ ) {
             EffectObject effObj = effectObjects.get(i);
-            if ( !effObj.isShown(width, height) ) { continue; }
+            if ( !effObj.isShown(screenWidth, screenHeight) ) { continue; }
 
             if ( effObj.isHit(player) ) {
                 effObj.giveEffect(player);
@@ -292,7 +298,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
             if ( effObj.isAvailable() ) {
                 effObj.move(GROUND_MOVE_TO_LEFT);
-                if ( effObj.isShown(width, height) ) {
+                if ( effObj.isShown(screenWidth, screenHeight) ) {
                     effObj.draw(canvas);
                 }
             } else {
@@ -300,8 +306,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 i--;
             }
         }
-
-
 
         //---- パワーゲージバー
         float elapsedTime;
@@ -348,13 +352,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     //---- 地面 Ground の作成
     private void createGround(int height, int width) {
         if ( lastGround == null ) {
-            groundList.clear();
             this.groundList.clear();
             int top = height - GROUND_HEIGHT;
             lastGround = new Ground(0, top, width, height);
             groundList.add(lastGround);
             int LGRight = lastGround.rect.right;
-            lastGround = new Blank(LGRight, height-1, LGRight+ player.hitRect.width()+1, height);
+            lastGround = new Blank(LGRight, height-1, LGRight+ player.hitRect.width()+this.GROUND_MOVE_TO_LEFT+1, height);
             groundList.add(lastGround);
         }
 
@@ -395,8 +398,8 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     //-- 各フィールドをゲーム開始時の状態にするメソッド
     public void init() {
-        int height = getHeight();
-        int width = getWidth();
+        int height = this.screenHeight;
+        int width = this.screenWidth;
 
         //-- Playerの初期化
         this.playerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_group);
@@ -437,17 +440,17 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     private void setRetryView() {
-        final View view = inflater.inflate(R.layout.retry_or_end, null);
+        final View retryView = inflater.inflate(R.layout.retry_or_end, null);
 
-        view.setLayoutParams(new ViewGroup.LayoutParams(
+        retryView.setLayoutParams(new ViewGroup.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-        this.relativeLayout.addView(view);
+        this.relativeLayout.addView(retryView);
         this.relativeLayout.setBackgroundColor(Color.argb(30, 0, 0, 0xFF));
 
-        retryButton = (Button) view.findViewById(R.id.rt_button);
+        retryButton = (Button) retryView.findViewById(R.id.rt_button);
 
-        retryEndText = (TextView) view.findViewById(R.id.roe_text);
+        retryEndText = (TextView) retryView.findViewById(R.id.roe_text);
         retryEndText.setText("GameOver");
 
         retryButton.setOnClickListener(new View.OnClickListener() {
@@ -456,16 +459,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 stopDrawThread();
                 init();
                 startDrawThread();
-
-                relativeLayout.removeView(view);
+                relativeLayout.removeView(retryView);
             }
         });
 
-        endButton = (Button) view.findViewById(R.id.ed_button);
+        endButton = (Button) retryView.findViewById(R.id.ed_button);
         endButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 stopDrawThread();
+                relativeLayout.removeView(retryView);
                 gameOverCallback.onGameOver();
             }
         });

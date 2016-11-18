@@ -41,14 +41,14 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
     }
 
     protected void startGame() {
-        gameView = new GameView(this);
+        gameView = new GameView(this, title.view.getWidth(), title.view.getHeight());
         gameView.setCallback(this);
 
         gameView.setFlame(relativeLayout);
 
         relativeLayout.addView(gameView);
 
-        relativeLayout.removeViews(0, relativeLayout.getChildCount()-2);
+        relativeLayout.removeViews(0, relativeLayout.getChildCount()-1);  // gameViewを残して、他のviewをListから削除
     }
 
     LayoutInflater inflater;
@@ -56,8 +56,10 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
     public class Title {
         private Button startButton;
 
+        public final View view;
+
         public Title(RelativeLayout relativeLayout) {
-            View view = inflater.inflate(R.layout.title, null);
+            view = inflater.inflate(R.layout.title, null);
             view.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 

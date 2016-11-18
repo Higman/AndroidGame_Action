@@ -41,6 +41,7 @@ public class Ground {
     }
 
     public boolean isShown(int width, int height) {
+        if ( rect.top > height ) { rect.top = height - 10; }  // 画面回転時に縦状態の幅・高さが設定されるのでその補正
         return rect.intersects(0, 0, width, height);
     }
 
