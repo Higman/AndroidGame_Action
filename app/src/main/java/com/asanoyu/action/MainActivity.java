@@ -40,6 +40,19 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
         title = new Title(relativeLayout);
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        View decor = this.getWindow().getDecorView();
+        decor.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_FULLSCREEN
+                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+    }
+
     protected void startGame() {
         gameView = new GameView(this, title.view.getWidth(), title.view.getHeight());
         gameView.setCallback(this);

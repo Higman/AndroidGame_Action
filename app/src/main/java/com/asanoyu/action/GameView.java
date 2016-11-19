@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -21,12 +22,12 @@ import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-
-import static android.util.TypedValue.COMPLEX_UNIT_DIP;
 
 /**
  * Created by YU-YA on 2016/09/07.
@@ -64,11 +65,20 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private final Random rand = new Random(System.currentTimeMillis());
 
     private Bitmap backgroundBitmap;
-    private Rect backgroundRect;
-    private static Paint bPaint = new Paint();
-    static { bPaint.setColor(Color.WHITE); }
 
     private final List<EffectObject> effectObjects = new ArrayList<>();   // 効果付与物体のリスト
+
+    /*                                       */
+
+    public static final int INTERVAL = 500;
+    public static final int LIST_SIZE = 4;
+    private long mTime = 0;
+    private int mCount = 0;
+    private LinkedList<Float> mFpsList = new LinkedList<Float>();
+
+    /*                                       */
+
+
 
     private final Player.Callback playerCallback = new Player.Callback() {
         @Override
@@ -240,25 +250,45 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     public GameView(Context context, int screenWidth, int screenHeight) {
         super(context);
 
-        // inflaterの取得
+        //--- inflaterの取得
         this.inflater = LayoutInflater.from(context);
 
         this.context = context;
 
-        // 背景画像の読み込み
-        this.backgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.background_blue);
-        this.backgroundRect = new Rect(0, 0 , this.backgroundBitmap.getWidth(), this.backgroundBitmap.getHeight());
-
-        // 画面サイズ
+        //--- 画面サイズ
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
+
+        //--- 背景画像の読み込み
+        this.backgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.background_blue);
+        Matrix matrix = new Matrix();
+
+        //- 画像サイズ
+        int srcBgWidth = this.backgroundBitmap.getWidth();
+        int srcBgHeight = this.backgroundBitmap.getHeight();
+
+        //- 拡大縮小率
+        float widthScale = this.screenWidth / (float) srcBgWidth;
+        float heightScale = this.screenHeight / (float) srcBgHeight;
+
+        //-- 背景の幅と高さのどちらに大きさを合わせるかの分岐
+        if (widthScale < heightScale) {
+            matrix.postScale(heightScale, heightScale);
+        } else {
+            matrix.postScale(widthScale, widthScale);
+        }
+
+        backgroundBitmap = Bitmap.createBitmap(backgroundBitmap, 0, 0, srcBgWidth, srcBgHeight, matrix, false);
 
         getHolder().addCallback(this);
     }
 
     protected void drawGame(Canvas canvas) {
 
-        canvas.drawBitmap(this.backgroundBitmap, this.backgroundRect, new Rect(0, 0, this.), bPaint);
+        //---- 背景
+        canvas.drawColor(Color.WHITE);
+
+        canvas.drawBitmap(this.backgroundBitmap, 0, 0,null);
 
         //---- 地面
         //-- 追加
@@ -279,12 +309,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             }
         }
 
-        int pre_playerX = player.hitRect.centerX(); //移動前のPlaterの位置
+        int pre_playerX = player.hitRect.centerX(); //移動前のPlayerの位置
+
+        //---- ゲームオーバー判定
+        if ( player.hitRect.top > this.screenHeight || player.hitRect.right < 0 ) { gameOver(); }
 
         //---- Player
         player.move();
-        //-- ゲームオーバー判定
-        if ( player.hitRect.top > this.screenHeight || player.hitRect.right < 0 ) { gameOver(); }
 
         //-- 描画
         player.draw(canvas);
@@ -330,6 +361,27 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
         //- gageViewに値を渡す
         gageView.setGageValue((int) elapsedTime);
+
+        //---- FPS
+        long time = System.currentTimeMillis();
+        Paint text = new Paint();
+        text.setTextSize(30);
+        if (time - mTime >= INTERVAL) {
+            final float fps = mCount * 1000 / (float) (time - mTime);
+            mFpsList.offer(fps);
+            while (mFpsList.size() > LIST_SIZE) {
+                mFpsList.remove();
+            }
+            mTime = time;
+            mCount = 0;
+
+        } else {
+            ++mCount;
+        }
+
+        Float[] fpss = mFpsList.toArray(new Float[0]);
+        Arrays.sort(fpss);
+        canvas.drawText(String.format("fps : max %4.1f      min %4.1f", fpss[fpss.length - 1], fpss[0]), 0, screenHeight-20, text);
     }
 
     private static final long MAX_TOUCH_TIME = 500;  // ミリ秒
