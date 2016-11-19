@@ -163,6 +163,7 @@ public class Player {
     }
 
     public void move() {
+
         MoveDirection moveDirection = callback.getDistanceFromObstacle(this);
         int distanceFromGround = moveDirection.y;
         int distanceFromWall = moveDirection.x;
@@ -198,10 +199,10 @@ public class Player {
     }
 
     public void gameOverMove() {
-        rect.offset(0, Integer.MAX_VALUE);
-        hitRectN.offset(0, Integer.MAX_VALUE);
-        hitRectJ.offset(0, Integer.MAX_VALUE);
-        hitRect.offset(0, Integer.MAX_VALUE);
+        rect.offset(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        hitRectN.offset(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        hitRectJ.offset(Integer.MAX_VALUE, Integer.MAX_VALUE);
+        hitRect.offset(Integer.MAX_VALUE, Integer.MAX_VALUE);
     }
 
     //----- setter/getter
