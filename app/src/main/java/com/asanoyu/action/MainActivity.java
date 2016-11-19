@@ -63,6 +63,8 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
 
             relativeLayout.addView(view);
 
+            view.setFocusable(true);
+
             startButton = (Button) findViewById(R.id.t_button);
             startButton.setOnClickListener(new View.OnClickListener() {
                 @Override

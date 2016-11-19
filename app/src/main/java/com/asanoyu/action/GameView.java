@@ -7,6 +7,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -61,6 +62,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private final List<Ground> groundList = new ArrayList<>();
     private final Random rand = new Random(System.currentTimeMillis());
+
+    private Bitmap backgroundBitmap;
+    private Rect backgroundRect;
+    private static Paint bPaint = new Paint();
+    static { bPaint.setColor(Color.WHITE); }
 
     private final List<EffectObject> effectObjects = new ArrayList<>();   // 効果付与物体のリスト
 
@@ -167,7 +173,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         return true;
     }
 
-    private GageView gageView;
+    private GageView gageView;  // ゲージ
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
@@ -192,6 +198,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
+        System.out.println("Destroyed");
         stopDrawThread();
     }
 
@@ -235,12 +242,16 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
         this.context = context;
 
+        // 背景画像の読み込み
+        this.backgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.background_blue);
+        this.backgroundRect = new Rect(0, 0 , this.backgroundBitmap.getWidth(), this.backgroundBitmap.getHeight());
+
         getHolder().addCallback(this);
     }
 
     protected void drawGame(Canvas canvas) {
 
-        canvas.drawColor(Color.rgb(0xc2, 0xed, 0xff));
+        canvas.drawBitmap(this.backgroundBitmap, this.backgroundRect, new Rect(0, 0, this.), bPaint);
 
         int width = canvas.getWidth();
         int height = canvas.getHeight();
