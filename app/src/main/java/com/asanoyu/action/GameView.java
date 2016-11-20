@@ -35,7 +35,7 @@ import java.util.Random;
 public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private Bitmap playerBitmap;
     public static final int GROUND_MOVE_TO_LEFT = 10;
-    private static final int GROUND_HEIGHT = 50;
+    private static final int GROUND_HEIGHT = 64;
     private static final long DRAW_INTERVAL = 1000 / 80;
     private static final int ADD_GROUND_COUNT = 5;
     private static final int ITEM_SIZE_MAX = 3;
@@ -63,12 +63,13 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private final List<Ground> groundList = new ArrayList<>();
     private final Random rand = new Random(System.currentTimeMillis());
+    private Bitmap groundBitmap;
 
     private Bitmap backgroundBitmap;
 
     private final List<EffectObject> effectObjects = new ArrayList<>();   // 効果付与物体のリスト
 
-    /*                                       */
+    /*    fps                                */
 
     public static final int INTERVAL = 500;
     public static final int LIST_SIZE = 4;
@@ -259,6 +260,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         this.screenWidth = screenWidth;
         this.screenHeight = screenHeight;
 
+        //--- Groundクラス用画像の読み込み
+        this.groundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.ground_desert);
+
         //--- 背景画像の読み込み
         this.backgroundBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.background_blue);
         Matrix matrix = new Matrix();
@@ -417,7 +421,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         if ( lastGround == null ) {
             this.groundList.clear();
             int top = height - GROUND_HEIGHT;
-            lastGround = new Ground(0, top, width, height);
+            lastGround = new Ground(this.groundBitmap, 0, top, width, height);
             groundList.add(lastGround);
             int LGRight = lastGround.rect.right;
             lastGround = new Blank(LGRight, height-1, LGRight+ player.hitRect.width()+this.GROUND_MOVE_TO_LEFT+1, height);
@@ -430,14 +434,21 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 int right;
 
                 int groundHeight = rand.nextInt(height / GROUND_BLOCK_HEIGHT) * GROUND_BLOCK_HEIGHT / 2 + GROUND_HEIGHT;
+                //-- 高さをGround.GROUND_ONE_BLOCK_SIZEの倍数に補正
+                groundHeight /= Ground.GROUND_ONE_BLOCK_SIZE;
+                groundHeight *= Ground.GROUND_ONE_BLOCK_SIZE;
+
                 int top = height - groundHeight;
 
                 int itemRangeRectBottom;  // アイテム出現範囲の矩形の下限
 
                 if ( rand.nextInt(3) != 0 || lastGround.getKind() == "Blank" ) {
                     right = left + STANDARD_GROUND_WIDTH;
-                    lastGround = new Ground(left, top, right, height);
-                    if ( rand.nextInt(3) == 0 ) { lastGround.changeWidth(-rand.nextInt(GROUND_WIDTH_AMPLITUDE)); }
+                    right /= Ground.GROUND_ONE_BLOCK_SIZE;
+                    right *= Ground.GROUND_ONE_BLOCK_SIZE;
+
+                    lastGround = new Ground(this.groundBitmap, left, top, right, height);
+                    if ( rand.nextInt(3) == 0 ) { lastGround.changeWidth(-(rand.nextInt(GROUND_WIDTH_AMPLITUDE)/Ground.GROUND_ONE_BLOCK_SIZE)*Ground.GROUND_ONE_BLOCK_SIZE); }
                     itemRangeRectBottom = top;
                 } else {
                     right = left + STANDARD_BLANK_WIDTH;

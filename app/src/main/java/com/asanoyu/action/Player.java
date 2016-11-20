@@ -3,6 +3,7 @@ package com.asanoyu.action;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.Paint;
 import android.graphics.RectF;

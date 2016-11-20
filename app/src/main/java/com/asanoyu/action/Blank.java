@@ -11,7 +11,7 @@ import java.util.Random;
  */
 public class Blank extends Ground {
     public Blank(int left, int top, int right, int bottom) {
-        super(left, top, right, bottom);
+        super(null, left, top, right, bottom);
 
         paint.setColor(Color.rgb(5+new Random().nextInt(251), 5+new Random().nextInt(251), 5+new Random().nextInt(251)));
     }
