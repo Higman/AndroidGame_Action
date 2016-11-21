@@ -16,12 +16,13 @@
         android:layout_width="match_parent"
         android:layout_centerVertical="true"
         android:gravity="center"
+        android:layout_marginBottom="-15dp"
         android:textSize="100dp"
         android:text="Action"/>
     <Button
         android:id="@+id/t_button"
         android:layout_width="200dp"
-        android:layout_height="100dp"
+        android:layout_height="50dp"
         android:layout_centerHorizontal="true"
         android:layout_below="@id/t_text"
         android:text="はじめる" />

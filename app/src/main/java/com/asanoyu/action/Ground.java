@@ -8,6 +8,7 @@ import android.graphics.Rect;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Created by YU-YA on 2016/09/07.
@@ -81,6 +82,10 @@ public class Ground {
         rect.offset(-moveToLeft, 0);
     }
 
+    public void groundSetTo(int newLeft, int newTop) {
+        rect.offsetTo(newLeft, newTop);
+    }
+
     public boolean isShown(int width, int height) {
         if ( rect.top > height ) { rect.top = height - 10; }  // 画面回転時に縦状態の幅・高さが設定されるのでその補正
         return rect.intersects(0, 0, width, height);
@@ -101,23 +106,34 @@ public class Ground {
     //======================================================================================
     //--  Groundインスタンス生成クラス
     //======================================================================================
-    private static class GroundFactory implements Runnable {
-        private final ArrayList<Ground> groundStockList = new ArrayList<Ground>();
+    public static class GroundFactory extends Thread {
+        private final ArrayList<Ground> groundStockList;
         private int maxStockSize = 5;  // Groundインスタンスの最大保持数
 
         private int maxWidth, minWidth;     // 幅
         private int maxHeight, minHeight;   // 高さ
+
+        private final AtomicBoolean isFinished = new AtomicBoolean(false);
 
         private Bitmap groundBitmap;
 
         //======================================================================================
         //--  コンスタンス
         //======================================================================================
-        public GroundFactory(Bitmap bitmap, int maxW, int minW, int maxH, int minH) {
+        public GroundFactory(Bitmap bitmap, int maxW, int minW, int maxH) {
+            //---- 初期化
+            groundStockList = new ArrayList<Ground>();
+            
+            groundStockList.add(new Ground(bitmap, 0, 0, maxW, maxH));
+            groundStockList.add(new Ground(bitmap, 0, 0, minW, maxH));
+            groundStockList.add(new Ground(bitmap, 0, 0, maxW, maxH));
+            groundStockList.add(new Ground(bitmap, 0, 0, minW, maxH));
+            groundStockList.add(new Ground(bitmap, 0, 0, maxW, maxH));
+
             this.maxWidth = maxW;
             this.minWidth = minW;
-            this.maxHeight = maxH;
-            this.minHeight = minH;
+            this.maxHeight = maxH+1;
+            this.minHeight = maxH;
 
             this.groundBitmap = bitmap;
         }
@@ -129,20 +145,29 @@ public class Ground {
 
         @Override
         public void run() {
-            if ( this.groundStockList.size() < this.maxStockSize ) {
-                int groundHeight = rand.nextInt(maxHeight-minHeight) + minHeight;
-                //-- 高さをGround.GROUND_ONE_BLOCK_SIZEの倍数に補正
-                groundHeight /= Ground.GROUND_ONE_BLOCK_SIZE;
-                groundHeight *= Ground.GROUND_ONE_BLOCK_SIZE;
+            while ( !isFinished.get() ) {
+                if (this.groundStockList.size() < this.maxStockSize) {
+                    int groundHeight = rand.nextInt(maxHeight - minHeight) + minHeight;
+                    //-- 高さをGround.GROUND_ONE_BLOCK_SIZEの倍数に補正
+                    groundHeight /= Ground.GROUND_ONE_BLOCK_SIZE;
+                    groundHeight *= Ground.GROUND_ONE_BLOCK_SIZE;
 
-                int groundWidth = rand.nextInt(maxWidth-minWidth) + minWidth;
-                //-- 幅をGround.GROUND_ONE_BLOCK_SIZEの倍数に補正
-                groundWidth /= Ground.GROUND_ONE_BLOCK_SIZE;
-                groundWidth *= Ground.GROUND_ONE_BLOCK_SIZE;
+                    int groundWidth = rand.nextInt(maxWidth - minWidth) + minWidth;
+                    //-- 幅をGround.GROUND_ONE_BLOCK_SIZEの倍数に補正
+                    groundWidth /= Ground.GROUND_ONE_BLOCK_SIZE;
+                    groundWidth *= Ground.GROUND_ONE_BLOCK_SIZE;
 
-                groundStockList.add(new Ground(groundBitmap, 0, 0, groundWidth, groundHeight));
+                    System.out.println("aaa");
+
+                    groundStockList.add(new Ground(groundBitmap, 0, 0, groundWidth, groundHeight));
+                }
             }
         }
+
+        //======================================================================================
+        //--  終了メソッド
+        //======================================================================================
+        public void finish() { isFinished.set(true); }
 
         //======================================================================================
         //--  Groundインスタンスの所得

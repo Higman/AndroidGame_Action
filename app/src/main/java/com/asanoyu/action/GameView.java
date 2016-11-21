@@ -51,7 +51,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private static int SCORE_SIZE = 100;  // スコア単位
 
     private Player player;
+
     private Ground lastGround;
+    private Ground.GroundFactory groundFactory;
 
     private static final Point PLAYER_START_POINT = new Point();   // 自機の初期スタート位置
 
@@ -200,19 +202,27 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         gageView.gageMax = (int) MAX_TOUCH_TIME;
         gageView.gageMin = 0;
         relativeLayout.addView(gageView);
-
-        //- 初期化
-        init();
     }
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        //- Ground
+        groundFactory = new Ground.GroundFactory(this.groundBitmap, this.STANDARD_GROUND_WIDTH,
+                this.STANDARD_GROUND_WIDTH-this.GROUND_WIDTH_AMPLITUDE, this.screenHeight);
+        groundFactory.start();
+
+        //- 初期化
+        init();
+
+        //- スタート
         startDrawThread();
     }
 
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         System.out.println("Destroyed");
+        groundFactory.finish();
+        groundFactory = null;
         stopDrawThread();
     }
 
@@ -433,27 +443,19 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 int left = lastGround.rect.right;
                 int right;
 
-                int groundHeight = rand.nextInt(height / GROUND_BLOCK_HEIGHT) * GROUND_BLOCK_HEIGHT / 2 + GROUND_HEIGHT;
-                //-- 高さをGround.GROUND_ONE_BLOCK_SIZEの倍数に補正
-                groundHeight /= Ground.GROUND_ONE_BLOCK_SIZE;
-                groundHeight *= Ground.GROUND_ONE_BLOCK_SIZE;
-
-                int top = height - groundHeight;
-
                 int itemRangeRectBottom;  // アイテム出現範囲の矩形の下限
 
                 if ( rand.nextInt(3) != 0 || lastGround.getKind() == "Blank" ) {
-                    right = left + STANDARD_GROUND_WIDTH;
-                    right /= Ground.GROUND_ONE_BLOCK_SIZE;
-                    right *= Ground.GROUND_ONE_BLOCK_SIZE;
-
-                    lastGround = new Ground(this.groundBitmap, left, top, right, height);
-                    if ( rand.nextInt(3) == 0 ) { lastGround.changeWidth(-(rand.nextInt(GROUND_WIDTH_AMPLITUDE)/Ground.GROUND_ONE_BLOCK_SIZE)*Ground.GROUND_ONE_BLOCK_SIZE); }
-                    itemRangeRectBottom = top;
+                    lastGround = groundFactory.getGround();
+                    int top = height - rand.nextInt(height / 2);
+                    lastGround.groundSetTo(left, top);
+                    right = lastGround.rect.right;
+                    itemRangeRectBottom = lastGround.rect.top;
                 } else {
                     right = left + STANDARD_BLANK_WIDTH;
                     lastGround = new Blank(left, height-1, right, height);
                     lastGround.changeWidth(-rand.nextInt(BLANK_WIDTH_AMPLITUDE));
+                    right = lastGround.rect.right;
                     itemRangeRectBottom = height/2;
                 }
 
@@ -531,7 +533,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             @Override
             public void onClick(View v) {
                 stopDrawThread();
-                init();
                 startDrawThread();
                 relativeLayout.removeView(retryView);
             }
