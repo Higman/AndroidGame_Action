@@ -103,30 +103,55 @@ public class Ground {
     //======================================================================================
     private static class GroundFactory implements Runnable {
         private final ArrayList<Ground> groundStockList = new ArrayList<Ground>();
-        private int maxStockSize;  // Groundインスタンスの最大保持数
+        private int maxStockSize = 5;  // Groundインスタンスの最大保持数
+
+        private int maxWidth, minWidth;     // 幅
+        private int maxHeight, minHeight;   // 高さ
+
+        private Bitmap groundBitmap;
 
         //======================================================================================
         //--  コンスタンス
         //======================================================================================
-        public GroundFactory(int maxStockSize) {
-            this.maxStockSize = maxStockSize;
+        public GroundFactory(Bitmap bitmap, int maxW, int minW, int maxH, int minH) {
+            this.maxWidth = maxW;
+            this.minWidth = minW;
+            this.maxHeight = maxH;
+            this.minHeight = minH;
+
+            this.groundBitmap = bitmap;
         }
 
+        //======================================================================================
+        //--  Thread
+        //======================================================================================
+        Random rand = new Random(System.currentTimeMillis());
 
         @Override
         public void run() {
             if ( this.groundStockList.size() < this.maxStockSize ) {
+                int groundHeight = rand.nextInt(maxHeight-minHeight) + minHeight;
+                //-- 高さをGround.GROUND_ONE_BLOCK_SIZEの倍数に補正
+                groundHeight /= Ground.GROUND_ONE_BLOCK_SIZE;
+                groundHeight *= Ground.GROUND_ONE_BLOCK_SIZE;
 
+                int groundWidth = rand.nextInt(maxWidth-minWidth) + minWidth;
+                //-- 幅をGround.GROUND_ONE_BLOCK_SIZEの倍数に補正
+                groundWidth /= Ground.GROUND_ONE_BLOCK_SIZE;
+                groundWidth *= Ground.GROUND_ONE_BLOCK_SIZE;
+
+                groundStockList.add(new Ground(groundBitmap, 0, 0, groundWidth, groundHeight));
             }
         }
 
         //======================================================================================
         //--  Groundインスタンスの所得
         //======================================================================================
-        public Ground getGround() {
+        public synchronized Ground getGround() {
             Ground ground = groundStockList.get(0);
             groundStockList.remove(ground);
             return ground;
         }
+
     }
 }
