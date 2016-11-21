@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
@@ -53,7 +52,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private Player player;
 
     private Ground lastGround;
-    private Ground.GroundFactory groundFactory;
 
     private static final Point PLAYER_START_POINT = new Point();   // 自機の初期スタート位置
 
@@ -90,26 +88,26 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             int distanceFromGround = Integer.MAX_VALUE;
 
             for ( Ground ground : groundList ) {
-                if ( ground.rect.left > player.hitRect.right ) {
+                if ( ground.locRect.left > player.hitRect.right ) {
                     break;
                 }
-                if ( ground.rect.right < player.hitRect.left ) {
+                if ( ground.locRect.right < player.hitRect.left ) {
                     continue;
                 }
 
-                boolean horizontalLeft = player.hitRect.left <= ground.rect.right && player.hitRect.left >= ground.rect.left;
-                boolean horizontalRight = player.hitRect.right <= ground.rect.right && player.hitRect.right >= ground.rect.left;
+                boolean horizontalLeft = player.hitRect.left <= ground.locRect.right && player.hitRect.left >= ground.locRect.left;
+                boolean horizontalRight = player.hitRect.right <= ground.locRect.right && player.hitRect.right >= ground.locRect.left;
 
                 if ( horizontalRight ) {
                     // playerオブジェクトの一番近くにあるGroundオブジェクトまでの距離
-                    if ( ground.isSolid() && ground.rect.top < player.hitRect.bottom ) {
-                        distanceFromWall = ground.rect.left - player.hitRect.right;
+                    if ( ground.isSolid() && ground.locRect.top < player.hitRect.bottom ) {
+                        distanceFromWall = ground.locRect.left - player.hitRect.right;
                         int local = groundList.indexOf(ground)-1;
                         ground = groundList.get(local);
                     }
 
                     if ( ground.isSolid() ) {
-                        int distanceFromGroundRight = ground.rect.top - player.hitRect.bottom;
+                        int distanceFromGroundRight = ground.locRect.top - player.hitRect.bottom;
 
                         if (distanceFromGround > distanceFromGroundRight) {
                             distanceFromGround = distanceFromGroundRight;
@@ -120,7 +118,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     if ( !ground.isSolid() ) {
                         distanceFromGround = Integer.MAX_VALUE;
                     } else {
-                        distanceFromGround = ground.rect.top - player.hitRect.bottom;
+                        distanceFromGround = ground.locRect.top - player.hitRect.bottom;
                     }
                 }
             }
@@ -193,8 +191,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        Ground.setSizeBitmap(this.groundBitmap, this.screenWidth, this.screenHeight);
+
         //- 自機の初期位置の計算
-        PLAYER_START_POINT.x = (int)(this.screenWidth*0.6);
+        PLAYER_START_POINT.x = (int)(this.screenWidth*0.4);
         PLAYER_START_POINT.y = this.screenHeight/2;
 
         //- GageView
@@ -206,11 +206,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        //- Ground
-        groundFactory = new Ground.GroundFactory(this.groundBitmap, this.STANDARD_GROUND_WIDTH,
-                this.STANDARD_GROUND_WIDTH-this.GROUND_WIDTH_AMPLITUDE, this.screenHeight);
-        groundFactory.start();
-
         //- 初期化
         init();
 
@@ -221,8 +216,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         System.out.println("Destroyed");
-        groundFactory.finish();
-        groundFactory = null;
         stopDrawThread();
     }
 
@@ -431,31 +424,32 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         if ( lastGround == null ) {
             this.groundList.clear();
             int top = height - GROUND_HEIGHT;
-            lastGround = new Ground(this.groundBitmap, 0, top, width, height);
+            lastGround = new Ground(0, top, width, height);
             groundList.add(lastGround);
-            int LGRight = lastGround.rect.right;
+            int LGRight = lastGround.locRect.right;
             lastGround = new Blank(LGRight, height-1, LGRight+ player.hitRect.width()+this.GROUND_MOVE_TO_LEFT+1, height);
             groundList.add(lastGround);
         }
 
         if ( groundList.get(groundList.indexOf(lastGround)-1).isShown(width, height) ) {
             for ( int i = 0; i < ADD_GROUND_COUNT; i++ ) {
-                int left = lastGround.rect.right;
-                int right;
+                int left = lastGround.locRect.right;
+                int right = left + STANDARD_GROUND_WIDTH;
+
+                int top = height - rand.nextInt(height / this.GROUND_BLOCK_HEIGHT) * this.GROUND_BLOCK_HEIGHT / 2 + this.GROUND_HEIGHT;
 
                 int itemRangeRectBottom;  // アイテム出現範囲の矩形の下限
 
                 if ( rand.nextInt(3) != 0 || lastGround.getKind() == "Blank" ) {
-                    lastGround = groundFactory.getGround();
-                    int top = height - rand.nextInt(height / 2);
-                    lastGround.groundSetTo(left, top);
-                    right = lastGround.rect.right;
-                    itemRangeRectBottom = lastGround.rect.top;
+                    lastGround = new Ground(left, top, right, height);
+                    lastGround.changeWidth(-rand.nextInt(GROUND_WIDTH_AMPLITUDE));
+                    right = lastGround.locRect.right;
+                    itemRangeRectBottom = lastGround.locRect.top;
                 } else {
                     right = left + STANDARD_BLANK_WIDTH;
                     lastGround = new Blank(left, height-1, right, height);
                     lastGround.changeWidth(-rand.nextInt(BLANK_WIDTH_AMPLITUDE));
-                    right = lastGround.rect.right;
+                    right = lastGround.locRect.right;
                     itemRangeRectBottom = height/2;
                 }
 
@@ -533,6 +527,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             @Override
             public void onClick(View v) {
                 stopDrawThread();
+                init();
                 startDrawThread();
                 relativeLayout.removeView(retryView);
             }

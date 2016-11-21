@@ -87,7 +87,7 @@ public class Player {
 
         this.rightEnd = rightEnd;
         this.callback = callback;
-        this.playerMoveToLeft = DEFAULT_PLAYER_MOVE_LEFT;
+        this.playerMoveToLeft = DEFAULT_PLAYER_MOVE_LEFT;  // 移動
     }
 
     public interface Callback {
@@ -125,21 +125,23 @@ public class Player {
             bitmapA.drawAnimation(canvas, this.rect, paint);
         }
 
+//        paint.setColor(Color.argb(100, 100, 0, 100));
+//        canvas.drawRect(rect, paint);
 //        paint.setColor(Color.argb(100, 100, 100, 40));
 //        canvas.drawRect(hitRect, paint);
 //        paint.setColor(Color.argb(100, 100, 00, 00));
 //        canvas.drawRect(hitRectN, paint);
 //        paint.setColor(Color.argb(100, 0, 100, 00));
 //        canvas.drawRect(hitRectJ, paint);
-        paint.setColor(Color.argb(255, 0, 0, 0));
-//
+//        paint.setColor(Color.argb(255, 0, 0, 0));
+
 //        paint.setColor(Color.CYAN);
-//        canvas.drawLine(rect.left, rect.centerY(), rect.left, rect.centerY()-100, paint);
-//        canvas.drawLine(rect.right, rect.centerY(), rect.right, rect.centerY()-100, paint);
+//        canvas.drawLine(srcRect.left, srcRect.centerY(), srcRect.left, srcRect.centerY()-100, paint);
+//        canvas.drawLine(srcRect.right, srcRect.centerY(), srcRect.right, srcRect.centerY()-100, paint);
 //
 //        paint.setColor(Color.BLUE);
-//        canvas.drawLine(hitRect.left, rect.centerY(), hitRect.left, rect.centerY()-100, paint);
-//        canvas.drawLine(hitRect.right, rect.centerY(), hitRect.right, rect.centerY()-100, paint);
+//        canvas.drawLine(hitRect.left, srcRect.centerY(), hitRect.left, srcRect.centerY()-100, paint);
+//        canvas.drawLine(hitRect.right, srcRect.centerY(), hitRect.right, srcRect.centerY()-100, paint);
     }
 
     public void setBitmapJ(Bitmap bitmap) {
@@ -197,6 +199,16 @@ public class Player {
         hitRect.set(hitRectJ);
 
         velocity -= GRAVITY;
+    }
+
+    public void setLocation(int newLeft, int newTop) {
+        int dx = newLeft - Math.round(rect.left);
+        int dy = newTop - Math.round(rect.top);
+
+        rect.offset(dx, dy);
+        hitRectN.offset(dx, dy);
+        hitRectJ.offset(dx, dy);
+        smokeRect.offset(dx, dy);
     }
 
     public void gameOverMove() {
