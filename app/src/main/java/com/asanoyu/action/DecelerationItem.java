@@ -36,7 +36,7 @@ public class DecelerationItem extends AccelerationItem {
         if ( !effecting.get() ) {
             canvas.drawBitmap(itemDrawBitmap, srcRect, locRect, TEXT_PAINT);
         } else {
-            canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 150, TEXT_PAINT);
+            canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 200, TEXT_PAINT);
         }
     }
 

@@ -47,7 +47,7 @@ public class ScoreAddingItem extends EffectObject {
         if ( !effecting.get() ) {
             canvas.drawBitmap(itemDrawBitmap, srcRect, locRect, null);
         } else {
-            canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 150, TEXT_PAINT);
+            canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 250, TEXT_PAINT);
         }
     }
 
