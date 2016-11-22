@@ -2,20 +2,16 @@ package com.asanoyu.action;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
-import android.graphics.drawable.shapes.Shape;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.LinearLayout;
+import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
-import android.widget.Toast;
-import android.widget.ViewSwitcher;
-
-import java.util.zip.Inflater;
 
 public class MainActivity extends Activity implements GameView.GameOverCallback {
 
@@ -26,7 +22,7 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
     @Override
     public void onGameOver() {
         //Toast.makeText(this, "GameOver", Toast.LENGTH_LONG).show();
-        new Title(relativeLayout);
+        new Title(this);
     }
 
     @Override
@@ -37,7 +33,7 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
         this.inflater = LayoutInflater.from(this);
         setContentView(relativeLayout);
 
-        title = new Title(relativeLayout);
+        title = new Title(this);
     }
 
     @Override
@@ -54,7 +50,7 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
     }
 
     protected void startGame() {
-        gameView = new GameView(this, title.view.getWidth(), title.view.getHeight());
+        gameView = new GameView(this, title.getWidth(), title.getHeight());
         gameView.setCallback(this);
 
         gameView.setFlame(relativeLayout);
@@ -66,19 +62,28 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
 
     LayoutInflater inflater;
 
-    public class Title {
+    public class Title extends FrameLayout implements Player.Callback {
         private Button startButton;
 
-        public final View view;
+        private Player player;
 
-        public Title(RelativeLayout relativeLayout) {
-            view = inflater.inflate(R.layout.title, null);
+        private final View view;
+
+        public Title(Context context) {
+            super(context);
+            view = inflater.inflate(R.layout.title, this);
             view.setLayoutParams(new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
-            relativeLayout.addView(view);
+            relativeLayout.addView(this);
 
-            view.setFocusable(true);
+            //-- 自機
+            Bitmap bitmap =  BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_group);
+            player = new Player(bitmap, -10, 100, Integer.MAX_VALUE, this);
+            this.player.setBitmapJ(BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_jump));  // ジャンプ時アニメーションの設定
+            this.player.setSmoke(BitmapFactory.decodeResource(getResources(), R.drawable.tank_smoke));       // 煙の設定
+
+            player.setPlayerMoveToLeft(3);  // 移動速度の設定
 
             startButton = (Button) findViewById(R.id.t_button);
             startButton.setOnClickListener(new View.OnClickListener() {
@@ -87,6 +92,53 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
                     startGame();
                 }
             });
+        }
+
+
+        //======================================================================================
+        //--  描画メソッド
+        //======================================================================================
+        private boolean directionFlag = true;         // 走る位置 true : 上向き  false : 下向き
+        private boolean rotateFlag = false;  // 走る位置を変えるか否か true : 変える  false : 変えない
+
+        @Override
+        protected void dispatchDraw(Canvas canvas) {
+            super.dispatchDraw(canvas);
+
+            //---- 自機
+            //-- 方向転換
+            if ( getWidth() + 200 < player.hitRect.left ) {
+                directionFlag = false;
+                player.setLocation(-200, Math.round(player.rect.top));
+
+                if ( rotateFlag == true ) {
+                    directionFlag = true;
+                    rotateFlag = false;
+                }
+            }
+
+            if ( directionFlag == false ) {
+                canvas.rotate(180, getWidth()/2, getHeight()/2);
+                rotateFlag = true;
+            }
+
+            //- 自機画像の反転
+
+            //- 移動
+            player.move();
+
+            //- 描画
+            player.draw(canvas);
+
+            invalidate();
+        }
+
+        @Override
+        public Player.MoveDirection getDistanceFromObstacle(Player player) {
+            int width = view.getWidth();
+            int height = view.getHeight();
+
+            return new Player.MoveDirection(Integer.MAX_VALUE, height-player.hitRect.bottom);
         }
     }
 }
