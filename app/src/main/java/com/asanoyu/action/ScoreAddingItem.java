@@ -1,6 +1,5 @@
 package com.asanoyu.action;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -27,14 +26,14 @@ public class ScoreAddingItem extends EffectObject {
     //======================================================================================
     //--  コンストラクタ
     //======================================================================================
-    public ScoreAddingItem(Bitmap bitmap, int imageNumber, int left, int top) {
-        super(bitmap, imageNumber, left, top);
+    public ScoreAddingItem(int itemNumber, int left, int top) {
+        super(itemNumber, left, top);
         effecting = new AtomicBoolean(false);
         used = new AtomicBoolean(false);
     }
 
-    public ScoreAddingItem(Bitmap bitmap, int left, int top) {
-        this(bitmap, EffectItem.SCORE_ADDING_ITEM.getInt(), left, top);
+    public ScoreAddingItem(int left, int top) {
+        this(EffectItem.SCORE_ADDING_ITEM.getInt(), left, top);
     }
 
     //======================================================================================
@@ -46,7 +45,7 @@ public class ScoreAddingItem extends EffectObject {
         int width = canvas.getWidth();
 
         if ( !effecting.get() ) {
-            canvas.drawBitmap(bitmap, srcRect, posRect, null);
+            canvas.drawBitmap(itemDrawBitmap, srcRect, locRect, null);
         } else {
             canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 150, TEXT_PAINT);
         }
@@ -97,7 +96,10 @@ public class ScoreAddingItem extends EffectObject {
                         e.printStackTrace();
                     }
                 }
+
+                //- 状態の更新
                 effecting.set(false);
+                used.set(true);
             }
         };
         th.start();

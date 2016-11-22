@@ -1,6 +1,5 @@
 package com.asanoyu.action;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -27,14 +26,14 @@ public class AccelerationItem extends EffectObject {
     //======================================================================================
     //--  コンストラクタ
     //======================================================================================
-    public AccelerationItem(Bitmap bitmap, int imageNumber, int left, int top) {
-        super(bitmap, imageNumber, left, top);
+    public AccelerationItem(int itemNumber, int left, int top) {
+        super(itemNumber, left, top);
         effecting = new AtomicBoolean(false);
         used = new AtomicBoolean(false);
     }
 
-    public AccelerationItem(Bitmap bitmap, int left, int top) {
-        this(bitmap, EffectItem.ACCELERATION_ITEM.getInt(), left, top);
+    public AccelerationItem(int left, int top) {
+        this(EffectItem.ACCELERATION_ITEM.getInt(), left, top);
     }
 
     //======================================================================================
@@ -42,11 +41,10 @@ public class AccelerationItem extends EffectObject {
     //======================================================================================
     @Override
     public void draw(Canvas canvas) {
-        int height = canvas.getHeight();
         int width = canvas.getWidth();
 
         if ( !effecting.get() ) {
-            canvas.drawBitmap(bitmap, srcRect, posRect, TEXT_PAINT);
+            canvas.drawBitmap(itemDrawBitmap, srcRect, locRect, TEXT_PAINT);
         } else {
             canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 150, TEXT_PAINT);
         }

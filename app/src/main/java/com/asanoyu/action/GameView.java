@@ -191,7 +191,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        //- 地面画像の生成
         Ground.setSizeBitmap(this.groundBitmap, this.screenWidth, this.screenHeight);
+
+        //- アイテムの設定
+        EffectObject.setItemDrawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.item_group));
 
         //- 自機の初期位置の計算
         PLAYER_START_POINT.x = (int)(this.screenWidth*0.4);
@@ -436,7 +440,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 int left = lastGround.locRect.right;
                 int right = left + STANDARD_GROUND_WIDTH;
 
-                int top = height - rand.nextInt(height / this.GROUND_BLOCK_HEIGHT) * this.GROUND_BLOCK_HEIGHT / 2 + this.GROUND_HEIGHT;
+                int top = height - (rand.nextInt(height / this.GROUND_BLOCK_HEIGHT) * this.GROUND_BLOCK_HEIGHT / 2 + this.GROUND_HEIGHT);
 
                 int itemRangeRectBottom;  // アイテム出現範囲の矩形の下限
 
@@ -548,8 +552,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     public EffectObject createEffectObject(int left, int top, int right, int bottom) {
         EffectObject effectObject;
 
-        Bitmap itemBitmap;
-
         //--- Objectの座標の決定
         int itemLeft = left + rand.nextInt(right - left - EffectObject.IMAGE_SIZE);
         int itemTop = top + rand.nextInt(bottom - EffectObject.IMAGE_SIZE);
@@ -558,14 +560,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int ObjectNum = rand.nextInt(EffectObject.EffectItem.values().length);
 
         switch ( ObjectNum ) {
-             case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
-                      effectObject = new AccelerationItem(itemBitmap, itemLeft, itemTop);
+             case 0 : effectObject = new AccelerationItem(itemLeft, itemTop);
                       break;
-             case 1 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
-                      effectObject = new DecelerationItem(itemBitmap, itemLeft, itemTop);
+             case 1 : effectObject = new DecelerationItem(itemLeft, itemTop);
                       break;
-             case 2 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
-                      effectObject = new ScoreAddingItem(itemBitmap, itemLeft, itemTop);
+             case 2 : effectObject = new ScoreAddingItem(itemLeft, itemTop);
                       break;
              default : effectObject = null;
         }
