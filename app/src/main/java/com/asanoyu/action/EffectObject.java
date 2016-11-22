@@ -40,7 +40,8 @@ public abstract class EffectObject {
     //======================================================================================
     public static enum EffectItem {
         ACCELERATION_ITEM(0),
-        DECELERATION_ITEM(1);
+        DECELERATION_ITEM(1),
+        SCORE_ADDING_ITEM(2);
 
         private final int id;
 

@@ -11,30 +11,30 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Created by YU-YA on 2016/10/12.
  */
 
-public class AccelerationItem extends EffectObject {
-    private static final int ACCELERATION_AMOUNT = 1;  // 加算する移動する移動速度
+public class ScoreAddingItem extends EffectObject {
+    private static final int SCORE_ADDING_AMOUNT = 10000;  // 加算するスコア
 
     protected AtomicBoolean effecting;  // false:アイテム状態  true:効果付与中
     protected AtomicBoolean used;  // 使用されたかどうか
 
-    protected int effectingTime = 5000;  // 効果付与時間 (ミリ秒)
+    protected int textTime = 2000;  // テキスト表示時間
 
-    private static final String EFFECT_TEXT = "Speed UP!!";  // 効果付与中に表示する文字列
+    private static final String EFFECT_TEXT = "Score +" + Integer.toString(SCORE_ADDING_AMOUNT/GameView.SCORE_SIZE);  // 効果付与中に表示する文字列
 
     private static final Paint TEXT_PAINT = new Paint();
-    static { TEXT_PAINT.setColor(Color.RED); TEXT_PAINT.setTextSize(50); }
+    static { TEXT_PAINT.setColor(Color.YELLOW); TEXT_PAINT.setTextSize(50); }
 
     //======================================================================================
     //--  コンストラクタ
     //======================================================================================
-    public AccelerationItem(Bitmap bitmap, int imageNumber, int left, int top) {
+    public ScoreAddingItem(Bitmap bitmap, int imageNumber, int left, int top) {
         super(bitmap, imageNumber, left, top);
         effecting = new AtomicBoolean(false);
         used = new AtomicBoolean(false);
     }
 
-    public AccelerationItem(Bitmap bitmap, int left, int top) {
-        this(bitmap, EffectItem.ACCELERATION_ITEM.getInt(), left, top);
+    public ScoreAddingItem(Bitmap bitmap, int left, int top) {
+        this(bitmap, EffectItem.SCORE_ADDING_ITEM.getInt(), left, top);
     }
 
     //======================================================================================
@@ -46,7 +46,7 @@ public class AccelerationItem extends EffectObject {
         int width = canvas.getWidth();
 
         if ( !effecting.get() ) {
-            canvas.drawBitmap(bitmap, srcRect, posRect, TEXT_PAINT);
+            canvas.drawBitmap(bitmap, srcRect, posRect, null);
         } else {
             canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 150, TEXT_PAINT);
         }
@@ -81,46 +81,25 @@ public class AccelerationItem extends EffectObject {
     //======================================================================================
     //--  効果付与メソッド
     //======================================================================================
+    private final int effectingTime = 2000;  // 効果付与時間
+
     @Override
     public void giveEffect(Player player) {
-        ItemEffect itemEffect = new ItemEffect(player, ACCELERATION_AMOUNT, effectingTime);
-        itemEffect.start();
-    }
-
-    //======================================================================================
-    //======================================================================================
-    //--  効果クラス
-    //======================================================================================
-    //======================================================================================
-    public class ItemEffect extends Thread {
-        private Player player;
-        private int amount;
-        private int waitTime;
-
-        public ItemEffect(Player player, int amount, int waitTime) {
-            this.player = player;
-            this.amount = amount;
-            this.waitTime = waitTime;
-        }
-
-        @Override
-        public void run() {
-            //--- 効果の反映
-            player.setPlayerMoveToLeft(player.getPlayerMoveToLeft()+amount);
-            effecting.set(true);  // 状態を効果付与中に
-
-            synchronized ( this ) {
-                try {
-                    wait(waitTime);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+        effecting.set(true);  // 状態を効果付与中に
+        GameView.addScore(this.SCORE_ADDING_AMOUNT);  // スコアの加算
+        Thread th = new Thread() {
+            @Override
+            public void run() {
+                synchronized (this) {
+                    try {
+                        wait(effectingTime);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
+                effecting.set(false);
             }
-
-            //--- 効果の終了
-            player.setPlayerMoveToLeft(player.getPlayerMoveToLeft()-amount);
-            effecting.set(false);
-            used.set(true);
-        }
+        };
+        th.start();
     }
 }

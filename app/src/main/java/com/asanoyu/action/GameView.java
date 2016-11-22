@@ -44,10 +44,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private static final int BLANK_WIDTH_AMPLITUDE = 250;  // Blankの幅の振幅
     private static final int GROUND_BLOCK_HEIGHT = 100;
 
-    private static final int EFFECT_OBJECT_PROBABILITY = 6;  // EffectObjectが配置される確率 ( 1 / n )
+    private static final int EFFECT_OBJECT_PROBABILITY = 4;  // EffectObjectが配置される確率 ( 1 / n )
 
-    private int score;   // スコア
-    private static int SCORE_SIZE = 100;  // スコア単位
+    private static int score = 0;   // スコア
+    public static final int SCORE_SIZE = 100;  // スコア単位
 
     private Player player;
 
@@ -328,7 +328,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         player.draw(canvas);
 
         //-- スコア計算
-        if ( !this.isGameOver.get() ) { score += this.GROUND_MOVE_TO_LEFT + player.hitRect.centerX() - pre_playerX; }
+        if ( !this.isGameOver.get() ) { addScore(this.GROUND_MOVE_TO_LEFT + player.hitRect.centerX() - pre_playerX); }
 
         //---- エフェクトオブジェクト
         //- 効果付与
@@ -492,7 +492,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         this.touchDownStartTime = 0;
 
         //-- スコアの初期化
-        score = 0;
+        this.setScore(0);
 
         //-- GameOver関連
         this.isGameOver.set(false);
@@ -564,10 +564,28 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
              case 1 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
                       effectObject = new DecelerationItem(itemBitmap, itemLeft, itemTop);
                       break;
+             case 2 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
+                      effectObject = new ScoreAddingItem(itemBitmap, itemLeft, itemTop);
+                      break;
              default : effectObject = null;
         }
 
         return effectObject;
+    }
+
+    //======================================================================================
+    //--  スコアの加算とゲッターとセッター
+    //======================================================================================
+    public static synchronized void addScore(int add) {
+        score += add;
+    }
+
+    public static synchronized int getScore() {
+        return score;
+    }
+
+    public static synchronized void setScore(int x) {
+        score = x;
     }
 
     //======================================================================================
@@ -687,7 +705,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
             canvas.drawCircle(circlePoint.x, circlePoint.y, gageCoverRadius, gageBodyPaint);
 
             //-- スコア
-            String scoreStr = Integer.toString(score/SCORE_SIZE);
+            String scoreStr = Integer.toString(getScore()/SCORE_SIZE);
 //            int lengthScore = scoreStr.length();  // 桁数
 
             textPaint.setTextSize(30.0f);

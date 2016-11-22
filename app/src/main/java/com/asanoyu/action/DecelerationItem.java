@@ -23,6 +23,7 @@ public class DecelerationItem extends AccelerationItem {
     //======================================================================================
     public DecelerationItem(Bitmap bitmap, int left, int top) {
         super(bitmap, EffectItem.DECELERATION_ITEM.getInt(), left, top);
+        effectingTime = 2000;
     }
 
     //======================================================================================
@@ -45,7 +46,7 @@ public class DecelerationItem extends AccelerationItem {
     //======================================================================================
     @Override
     public void giveEffect(Player player) {
-        ItemEffect itemEffect = new ItemEffect(player, this.DECELERATION_AMOUNT, 2000);
+        ItemEffect itemEffect = new ItemEffect(player, this.DECELERATION_AMOUNT, effectingTime);
         itemEffect.start();
     }
 }
