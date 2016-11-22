@@ -45,7 +45,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private static final int BLANK_WIDTH_AMPLITUDE = 250;  // Blankの幅の振幅
     private static final int GROUND_BLOCK_HEIGHT = 100;
 
-    private static final int EFFECT_OBJECT_PROBABILITY = 10;  // EffectObjectが配置される確率 ( 1 / n )
+    private static final int EFFECT_OBJECT_PROBABILITY = 6;  // EffectObjectが配置される確率 ( 1 / n )
 
     private int score;   // スコア
     private static int SCORE_SIZE = 100;  // スコア単位
