@@ -1,6 +1,5 @@
 package com.asanoyu.action;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -21,8 +20,8 @@ public class DecelerationItem extends AccelerationItem {
     //======================================================================================
     //--  コンストラクタ
     //======================================================================================
-    public DecelerationItem(Bitmap bitmap, int left, int top) {
-        super(bitmap, EffectItem.DECELERATION_ITEM.getInt(), left, top);
+    public DecelerationItem(int left, int top) {
+        super(EffectItem.DECELERATION_ITEM.getInt(), left, top);
         effectingTime = 2000;
     }
 
@@ -35,7 +34,7 @@ public class DecelerationItem extends AccelerationItem {
         int width = canvas.getWidth();
 
         if ( !effecting.get() ) {
-            canvas.drawBitmap(bitmap, srcRect, posRect, TEXT_PAINT);
+            canvas.drawBitmap(itemDrawBitmap, srcRect, locRect, TEXT_PAINT);
         } else {
             canvas.drawText(this.EFFECT_TEXT, width/2-TEXT_PAINT.measureText(this.EFFECT_TEXT)/2, 200, TEXT_PAINT);
         }

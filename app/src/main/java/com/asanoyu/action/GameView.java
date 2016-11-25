@@ -1,6 +1,7 @@
 package com.asanoyu.action;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -21,12 +22,15 @@ import android.widget.Button;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import java.net.IDN;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+
+import static android.content.Context.MODE_PRIVATE;
 
 /**
  * Created by YU-YA on 2016/09/07.
@@ -40,7 +44,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     private static final int ITEM_SIZE_MAX = 3;
     private static final int STANDARD_GROUND_WIDTH = 1500;   // Groundの幅の基準 (最大幅)
     private static final int STANDARD_BLANK_WIDTH = 450;   // Blankの幅の基準 (最大幅)
-    private static final int GROUND_WIDTH_AMPLITUDE = 200;  // Groundの幅の振幅
+    private static final int GROUND_WIDTH_AMPLITUDE = 800;  // Groundの幅の振幅
     private static final int BLANK_WIDTH_AMPLITUDE = 250;  // Blankの幅の振幅
     private static final int GROUND_BLOCK_HEIGHT = 100;
 
@@ -48,6 +52,9 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     private static int score = 0;   // スコア
     public static final int SCORE_SIZE = 100;  // スコア単位
+    private final SharedPreferences.Editor editor;  // エディタクラス
+    private final SharedPreferences prefer;         // プリファレンスクラス
+    private final String HIGH_SCORE_SAVE_ID = "highScore";   // セーブ用ID文字列
 
     private Player player;
 
@@ -191,7 +198,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        //- 地面画像の生成
         Ground.setSizeBitmap(this.groundBitmap, this.screenWidth, this.screenHeight);
+
+        //- アイテムの設定
+        EffectObject.setItemDrawBitmap(BitmapFactory.decodeResource(getResources(), R.drawable.item_group));
 
         //- 自機の初期位置の計算
         PLAYER_START_POINT.x = (int)(this.screenWidth*0.4);
@@ -233,6 +244,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     }
 
     private final AtomicBoolean isGameOver = new AtomicBoolean();
+    private final AtomicBoolean highScoreFlag = new AtomicBoolean(false);
 
     private void gameOver() {
         if ( isGameOver.get() ) {
@@ -242,17 +254,28 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         isGameOver.set(true);
         player.gameOverMove();
         player.stop();
+
+        //--- ハイスコアの記録
+        highScoreFlag.set(setHighScore(score));
+
         handler.post(new Runnable() {
             @Override
             public void run() {
 //                gameOverCallback.onGameOver();
-                setRetryView();
+                setRetryView(highScoreFlag.get());
+                highScoreFlag.set(false);
             }
         });
     }
 
     public GameView(Context context, int screenWidth, int screenHeight) {
         super(context);
+
+
+        //--- プリファレンスにアクセス
+        prefer = context.getSharedPreferences("HighScoreSave", MODE_PRIVATE);
+
+        this.editor = prefer.edit();
 
         //--- inflaterの取得
         this.inflater = LayoutInflater.from(context);
@@ -370,25 +393,25 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         gageView.setGageValue((int) elapsedTime);
 
         //---- FPS
-        long time = System.currentTimeMillis();
-        Paint text = new Paint();
-        text.setTextSize(30);
-        if (time - mTime >= INTERVAL) {
-            final float fps = mCount * 1000 / (float) (time - mTime);
-            mFpsList.offer(fps);
-            while (mFpsList.size() > LIST_SIZE) {
-                mFpsList.remove();
-            }
-            mTime = time;
-            mCount = 0;
-
-        } else {
-            ++mCount;
-        }
-
-        Float[] fpss = mFpsList.toArray(new Float[0]);
-        Arrays.sort(fpss);
-        canvas.drawText(String.format("fps : max %4.1f      min %4.1f", fpss[fpss.length - 1], fpss[0]), 0, screenHeight-20, text);
+//        long time = System.currentTimeMillis();
+//        Paint text = new Paint();
+//        text.setTextSize(30);
+//        if (time - mTime >= INTERVAL) {
+//            final float fps = mCount * 1000 / (float) (time - mTime);
+//            mFpsList.offer(fps);
+//            while (mFpsList.size() > LIST_SIZE) {
+//                mFpsList.remove();
+//            }
+//            mTime = time;
+//            mCount = 0;
+//
+//        } else {
+//            ++mCount;
+//        }
+//
+//        Float[] fpss = mFpsList.toArray(new Float[0]);
+//        Arrays.sort(fpss);
+//        canvas.drawText(String.format("fps : max %4.1f      min %4.1f", fpss[fpss.length - 1], fpss[0]), 0, screenHeight-20, text);
     }
 
     private static final long MAX_TOUCH_TIME = 500;  // ミリ秒
@@ -424,10 +447,12 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         if ( lastGround == null ) {
             this.groundList.clear();
             int top = height - GROUND_HEIGHT;
-            lastGround = new Ground(0, top, width, height);
+            lastGround = new Ground(-100, top, 100, height);   // ダミーグランド
+            groundList.add(lastGround);
+            lastGround = new Ground(0, top, width, height);   // 一つ目
             groundList.add(lastGround);
             int LGRight = lastGround.locRect.right;
-            lastGround = new Blank(LGRight, height-1, LGRight+ player.hitRect.width()+this.GROUND_MOVE_TO_LEFT+1, height);
+            lastGround = new Blank(LGRight, height-1, LGRight+ player.hitRect.width()+this.GROUND_MOVE_TO_LEFT+1, height);  // 2つ目(Blanck)
             groundList.add(lastGround);
         }
 
@@ -436,7 +461,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                 int left = lastGround.locRect.right;
                 int right = left + STANDARD_GROUND_WIDTH;
 
-                int top = height - rand.nextInt(height / this.GROUND_BLOCK_HEIGHT) * this.GROUND_BLOCK_HEIGHT / 2 + this.GROUND_HEIGHT;
+                int top = height - (rand.nextInt(height / this.GROUND_BLOCK_HEIGHT) * this.GROUND_BLOCK_HEIGHT / 2 + this.GROUND_HEIGHT);
 
                 int itemRangeRectBottom;  // アイテム出現範囲の矩形の下限
 
@@ -498,30 +523,53 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         this.isGameOver.set(false);
     }
 
+    //======================================================================================
+    //--  リトライ画面関連
+    //======================================================================================
     //-- リトライ・終了確認画面の表示
     private RelativeLayout relativeLayout;
     private LayoutInflater inflater;
     private TextView retryEndText;
     private Button retryButton;
     private Button endButton;
+    private TextView highScoreStringText;
+    private TextView highScoreText;
+    private TextView NewRecodeText;
+    private Paint reTextPaint = new Paint();
 
     public void setFlame(RelativeLayout relativeLayout) {
         this.relativeLayout = relativeLayout;
     }
 
-    private void setRetryView() {
+    //-- リトライ画面の配置
+    private void setRetryView(boolean highScoreFlag) {
         final View retryView = inflater.inflate(R.layout.retry_or_end, null);
 
         retryView.setLayoutParams(new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         this.relativeLayout.addView(retryView);
         this.relativeLayout.setBackgroundColor(Color.argb(30, 0, 0, 0xFF));
 
         retryButton = (Button) retryView.findViewById(R.id.rt_button);
 
+        //- GameOver文字列
         retryEndText = (TextView) retryView.findViewById(R.id.roe_text);
         retryEndText.setText("GameOver");
+
+        //- ハイスコアの文字列
+        highScoreStringText = (TextView) retryView.findViewById(R.id.roe_highScoreText);
+
+        //- ハイスコアの値
+        int highScore = prefer.getInt(HIGH_SCORE_SAVE_ID, 0);
+        highScoreText = (TextView) retryView.findViewById(R.id.roe_highScore);
+        highScoreText.setText(Integer.toString(highScore/SCORE_SIZE));
+
+        //- NewRecode文字列
+        if ( !highScoreFlag ) {
+            NewRecodeText = (TextView) retryView.findViewById(R.id.roe_new_record);
+            NewRecodeText.setText("");
+        }
 
         retryButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -548,8 +596,6 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
     public EffectObject createEffectObject(int left, int top, int right, int bottom) {
         EffectObject effectObject;
 
-        Bitmap itemBitmap;
-
         //--- Objectの座標の決定
         int itemLeft = left + rand.nextInt(right - left - EffectObject.IMAGE_SIZE);
         int itemTop = top + rand.nextInt(bottom - EffectObject.IMAGE_SIZE);
@@ -558,14 +604,11 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         int ObjectNum = rand.nextInt(EffectObject.EffectItem.values().length);
 
         switch ( ObjectNum ) {
-             case 0 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
-                      effectObject = new AccelerationItem(itemBitmap, itemLeft, itemTop);
+             case 0 : effectObject = new AccelerationItem(itemLeft, itemTop);
                       break;
-             case 1 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
-                      effectObject = new DecelerationItem(itemBitmap, itemLeft, itemTop);
+             case 1 : effectObject = new DecelerationItem(itemLeft, itemTop);
                       break;
-             case 2 : itemBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.item_group);
-                      effectObject = new ScoreAddingItem(itemBitmap, itemLeft, itemTop);
+             case 2 : effectObject = new ScoreAddingItem(itemLeft, itemTop);
                       break;
              default : effectObject = null;
         }
@@ -586,6 +629,23 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
 
     public static synchronized void setScore(int x) {
         score = x;
+    }
+
+    //======================================================================================
+    //--  ハイスコアの判定・格納
+    //======================================================================================
+    private boolean setHighScore(int score) {
+        int highScore = prefer.getInt(this.HIGH_SCORE_SAVE_ID, 0);
+
+        if ( highScore >= score ) {
+            return false;  // ハイスコア更新ならず
+        }
+        
+        editor.putInt(this.HIGH_SCORE_SAVE_ID, score);  // 値の保存
+        editor.apply();   // 反映
+        editor.commit();  // 書き込み
+
+        return true;   // ハイスコア更新
     }
 
     //======================================================================================
