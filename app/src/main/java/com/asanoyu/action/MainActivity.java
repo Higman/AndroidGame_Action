@@ -80,7 +80,7 @@ public class MainActivity extends Activity implements GameView.GameOverCallback 
             //-- 自機
             Bitmap bitmap =  BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_group);
             player = new Player(bitmap, -10, 100, Integer.MAX_VALUE, this);
-            this.player.setBitmapJ(BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_jump));  // ジャンプ時アニメーションの設定
+            this.player.setSrcBitmapJ(BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_jump));  // ジャンプ時アニメーションの設定
             this.player.setSmoke(BitmapFactory.decodeResource(getResources(), R.drawable.tank_smoke));       // 煙の設定
 
             player.setPlayerMoveToLeft(3);  // 移動速度の設定

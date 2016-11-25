@@ -2,7 +2,6 @@ package com.asanoyu.action;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.Paint;
@@ -22,7 +21,8 @@ public class Player {
     private static final int BLOCK_SIZE = 64;
 
     private BitmapAnimation bitmapA;
-    private Bitmap bitmapJ;           // ジャンプ時の画像
+    private Bitmap srcBitmapJ;           // ジャンプ時の画像の元画像
+    private Bitmap drawBitmapJ;          // 描画用
     private static final Rect PLAYER_JUMPING_RECT = new Rect(0, 0, BLOCK_SIZE, BLOCK_SIZE);
 
     private BitmapAnimation bitmapA_smoke;  // 煙アニメーション
@@ -119,8 +119,8 @@ public class Player {
         }
 
         //--- 自機の描画
-        if ( bitmapJ != null && velocity != 0 ) {
-            canvas.drawBitmap(bitmapJ, this.PLAYER_JUMPING_RECT, this.rect, paint);
+        if ( srcBitmapJ != null && velocity != 0 ) {
+            canvas.drawBitmap(srcBitmapJ, this.PLAYER_JUMPING_RECT, this.rect, paint);
         } else {
             bitmapA.drawAnimation(canvas, this.rect, paint);
         }
@@ -144,8 +144,18 @@ public class Player {
 //        canvas.drawLine(hitRect.right, srcRect.centerY(), hitRect.right, srcRect.centerY()-100, paint);
     }
 
-    public void setBitmapJ(Bitmap bitmap) {
-        this.bitmapJ = bitmap;
+    public void setSrcBitmapJ(Bitmap bitmap) {
+        this.srcBitmapJ = bitmap;
+
+        //-- 画像加工
+        Matrix matrix = new Matrix();
+        //- 拡大率の計算
+        int width = this.srcBitmapJ.getWidth();
+        int height = this.srcBitmapJ.getHeight();
+        float scale = this.SMOKE_IMAGE_SIZE / height;
+        matrix.postScale(scale, scale);
+
+        this.drawBitmapJ = Bitmap.createBitmap(this.srcBitmapJ, 0, 0, width, height, matrix, false);  // 作成
     }
 
     public void setSmoke(Bitmap bitmap) {
@@ -234,7 +244,8 @@ public class Player {
 
     public class BitmapAnimation {
 
-        private Bitmap bitmap;  // 表示画像
+        private Bitmap srcBitmap;   // 元画像
+        private Bitmap drawBitmap;  // 描画画像
         private final int IMAGE_BLOCK;  // 1つのアニメーションの大きさ
         private final int DRAW_SIZE;  // 画像内にあるアニメーション枚数
 
@@ -245,10 +256,20 @@ public class Player {
         //======================================================================================
         //--  コンストラクタ
         //======================================================================================
-        public BitmapAnimation(Bitmap bitmap, int imageBlock) {
-            this.bitmap = bitmap;
+        public BitmapAnimation(Bitmap srcBitmap, int imageBlock) {
+            this.srcBitmap = srcBitmap;
             this.IMAGE_BLOCK = imageBlock;
-            this.DRAW_SIZE = bitmap.getWidth() / imageBlock;
+            int width = this.srcBitmap.getWidth();
+            int height = this.srcBitmap.getHeight();
+            this.DRAW_SIZE = width / imageBlock;
+
+            //-- 画像加工
+            Matrix matrix = new Matrix();
+            //- 拡大率の計算
+            float scale = this.IMAGE_BLOCK / height;
+            matrix.postScale(scale, scale);
+
+            this.drawBitmap = Bitmap.createBitmap(this.srcBitmap, 0, 0, width, height, matrix, false);  // 作成
 
             //-- 描画範囲の格納
             int left = 0;
@@ -276,11 +297,11 @@ public class Player {
         //======================================================================================
         //--  アニメーション間隔の設定
         //======================================================================================
-        public boolean setInterval(int itb) {
+        public boolean setInterval(int itv) {
             //-- 判定
-            if ( itb < 0 ) { return false; }  // 無効値
+            if ( itv < 0 ) { return false; }  // 無効値
 
-            this.drawInterval = itb + 1;
+            this.drawInterval = itv + 1;
             return true;
         }
 
@@ -291,7 +312,7 @@ public class Player {
         private long previousAnimationTime = System.currentTimeMillis();  // 以前描画番号draw_numを変更した時間
 
         public void drawAnimation(Canvas canvas, RectF locRect, Paint paint) {
-            canvas.drawBitmap(this.bitmap, srcRectList.get(draw_num), locRect, paint);
+            canvas.drawBitmap(this.drawBitmap, srcRectList.get(draw_num), locRect, paint);
 
             long numTime = System.currentTimeMillis();
             if (numTime - this.previousAnimationTime >= this.drawInterval) {

@@ -474,7 +474,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         //-- Playerの初期化
         this.playerBitmap = BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_group);
         this.player = new Player(playerBitmap, PLAYER_START_POINT.x, PLAYER_START_POINT.y, width, playerCallback);
-        this.player.setBitmapJ(BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_jump));  // ジャンプ時アニメーションの設定
+        this.player.setSrcBitmapJ(BitmapFactory.decodeResource(getResources(), R.drawable.dot_tank_jump));  // ジャンプ時アニメーションの設定
         this.player.setSmoke(BitmapFactory.decodeResource(getResources(), R.drawable.tank_smoke));       // 煙の設定
 
         //-- 地面オブジェクト
