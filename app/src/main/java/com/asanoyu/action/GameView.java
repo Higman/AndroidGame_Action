@@ -110,6 +110,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     if ( ground.isSolid() && ground.locRect.top < player.hitRect.bottom ) {
                         distanceFromWall = ground.locRect.left - player.hitRect.right;
                         int local = groundList.indexOf(ground)-1;
+                        if ( local < 0 ) { local = 0; }  // TODO あとで直す
                         ground = groundList.get(local);
                     }
 
@@ -122,10 +123,10 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
                     }
                     break;
                 } else if ( horizontalLeft ) {
-                    if ( !ground.isSolid() ) {
-                        distanceFromGround = Integer.MAX_VALUE;
-                    } else {
+                    if ( ground.isSolid() ) {
                         distanceFromGround = ground.locRect.top - player.hitRect.bottom;
+                    } else {
+                        distanceFromGround = Integer.MAX_VALUE;
                     }
                 }
             }
@@ -318,7 +319,7 @@ public class GameView extends SurfaceView implements SurfaceHolder.Callback {
         //---- 背景
         canvas.drawColor(Color.WHITE);
 
-        canvas.drawBitmap(this.backgroundBitmap, 0, 0,null);
+        canvas.drawBitmap(this.backgroundBitmap, 0, 0, null);
 
         //---- 地面
         //-- 追加
