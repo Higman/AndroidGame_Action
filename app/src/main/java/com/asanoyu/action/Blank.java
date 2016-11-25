@@ -22,12 +22,12 @@ public class Blank extends Ground {
     public void draw(Canvas canvas) {
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(5);
-        canvas.drawCircle(locRect.centerX(), 65, 20, paint);
-        canvas.drawCircle(locRect.left, 50, 10, paint);
-        canvas.drawCircle(locRect.right,80, 10, paint);
-
-        canvas.drawLine(locRect.left, locRect.top, locRect.left, 0, paint);
-        canvas.drawLine(locRect.right, locRect.top, locRect.right, 0, paint);
+//        canvas.drawCircle(locRect.centerX(), 65, 20, paint);
+//        canvas.drawCircle(locRect.left, 50, 10, paint);
+//        canvas.drawCircle(locRect.right,80, 10, paint);
+//
+//        canvas.drawLine(locRect.left, locRect.top, locRect.left, 0, paint);
+//        canvas.drawLine(locRect.right, locRect.top, locRect.right, 0, paint);
     }
 
     @Override
